@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # --- API credentials (empty string == not configured) ------------------
     marketaux_api_key: str = ""
     fred_api_key: str = ""
-    anthropic_api_key: str = ""
+    gemini_api_key: str = ""
 
     # --- Application -------------------------------------------------------
     stockintel_env: str = "development"
@@ -79,7 +79,7 @@ class Settings(BaseSettings):
 
     @property
     def has_llm(self) -> bool:
-        return bool(self.anthropic_api_key.strip())
+        return bool(self.gemini_api_key.strip())
 
     def integration_status(self) -> dict[str, dict[str, object]]:
         """Per-integration availability, safe to serialise to the frontend.
@@ -126,11 +126,11 @@ class Settings(BaseSettings):
             },
             "llm_narrative": {
                 "configured": self.has_llm,
-                "provider": "Anthropic",
+                "provider": "Google Gemini",
                 "requires_key": True,
-                "env_var": "ANTHROPIC_API_KEY",
-                "obtain_at": "https://console.anthropic.com/",
-                "free_tier": "No free tier",
+                "env_var": "GEMINI_API_KEY",
+                "obtain_at": "https://aistudio.google.com/apikey",
+                "free_tier": "Free tier available",
                 "note": (
                     "Optional. Only adds prose event-impact summaries; the "
                     "rule-based relevance and impact engine runs without it."
