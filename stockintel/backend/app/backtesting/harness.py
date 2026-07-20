@@ -188,6 +188,126 @@ def run_walk_forward(
     return result
 
 
+def run_selective_walk_forward(
+    model_factory,
+    x: pd.DataFrame,
+    y: np.ndarray,
+    class_labels: tuple[str, ...],
+    config: WalkForwardConfig,
+    *,
+    random_seed: int = 42,
+) -> dict[str, object]:
+    """Walk-forward evaluation of a model that may abstain.
+
+    Per fold the training window is split chronologically into a fit block and
+    a purged validation tail. The model trains on the fit block; the abstention
+    threshold is fitted on the validation tail; both are then applied unchanged
+    to the test block. The threshold never sees test data, so the reported
+    selective accuracy is a genuine out-of-sample number.
+
+    Test-block predictions are pooled across folds before scoring, since any
+    single fold may contain too few answered samples to score stably.
+    """
+    from app.backtesting.splits import train_calibration_split
+    from app.models.selective import (
+        SelectiveReport,
+        evaluate_at_threshold,
+        fit_threshold,
+        risk_coverage_curve,
+    )
+
+    y = np.asarray(y).astype(int)
+    folds = list(walk_forward_splits(x.index, config))
+    if not folds:
+        raise ValueError("Walk-forward produced no usable folds.")
+
+    pooled_truth: list[np.ndarray] = []
+    pooled_proba: list[np.ndarray] = []
+    pooled_answered: list[np.ndarray] = []
+    fold_thresholds: list[float] = []
+
+    for fold in folds:
+        fit_indices, validation_indices = train_calibration_split(
+            fold.train_indices, horizon=config.horizon, calibration_fraction=0.25
+        )
+
+        if len(validation_indices) == 0 or len(fit_indices) < config.min_train_size // 2:
+            logger.debug("Fold %d: no usable validation tail; skipping.", fold.fold_index)
+            continue
+
+        y_fit = y[fit_indices]
+        if len(np.unique(y_fit)) < 2:
+            continue
+
+        model = model_factory()
+        try:
+            model.fit(x.iloc[fit_indices], y_fit)
+            proba_validation = model.predict_proba(x.iloc[validation_indices])
+            proba_test = model.predict_proba(x.iloc[fold.test_indices])
+        except Exception as exc:
+            logger.error("Selective run failed on fold %d: %s", fold.fold_index, exc)
+            continue
+
+        threshold, _ = fit_threshold(y[validation_indices], proba_validation, class_labels)
+        fold_thresholds.append(threshold)
+
+        from app.models.selective import confidence_margin
+
+        pooled_truth.append(y[fold.test_indices])
+        pooled_proba.append(proba_test)
+        pooled_answered.append(confidence_margin(proba_test) >= threshold)
+
+    if not pooled_truth:
+        return {"available": False, "reason": "No fold produced a usable validation split."}
+
+    truth = np.concatenate(pooled_truth)
+    proba = np.concatenate(pooled_proba)
+    answered = np.concatenate(pooled_answered)
+
+    n_answered = int(answered.sum())
+    if n_answered == 0:
+        return {
+            "available": True,
+            "abstains_always": True,
+            "coverage": 0.0,
+            "interpretation": (
+                "The model's confidence never cleared its fitted threshold out-of-sample. "
+                "No directional calls are issued."
+            ),
+        }
+
+    # Score the answered subset directly, using the per-fold thresholds already
+    # applied -- not a single global threshold refitted here, which would leak.
+    y_answered = truth[answered]
+    predictions = proba[answered].argmax(axis=1)
+    accuracy = float((predictions == y_answered).mean())
+
+    counts = np.bincount(y_answered, minlength=len(class_labels))
+    baseline = float(counts.max() / n_answered)
+    denominator = 1.0 - baseline
+    skill = (accuracy - baseline) / denominator if denominator > 1e-9 else 0.0
+
+    report = SelectiveReport(
+        coverage=n_answered / len(truth),
+        n_answered=n_answered,
+        n_total=len(truth),
+        selective_accuracy=accuracy,
+        baseline_accuracy=baseline,
+        skill_score=float(skill),
+        threshold=float(np.median(fold_thresholds)) if fold_thresholds else 0.0,
+        class_distribution_answered={
+            label: int(counts[index]) for index, label in enumerate(class_labels)
+        },
+    )
+
+    payload = report.to_dict()
+    payload["available"] = True
+    payload["abstains_always"] = False
+    payload["median_fold_threshold"] = round(float(np.median(fold_thresholds)), 4)
+    payload["risk_coverage_curve"] = risk_coverage_curve(truth, proba, class_labels)
+    return payload
+
+
 def _regime_breakdown(
     y: np.ndarray,
     oof_proba: np.ndarray,

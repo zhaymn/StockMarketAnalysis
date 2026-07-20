@@ -95,10 +95,52 @@ OUTLOOK_5D = TargetSpec(
     ),
 )
 
+OUTLOOK_10D = TargetSpec(
+    name="outlook_10d",
+    horizon_days=10,
+    n_classes=3,
+    class_labels=("BEARISH", "NEUTRAL", "BULLISH"),
+    description=(
+        "Two-week outlook. Longer horizons carry a better signal-to-noise "
+        "ratio: daily microstructure noise partially averages out while any "
+        "trend or drift component accumulates."
+    ),
+)
+
+OUTLOOK_20D = TargetSpec(
+    name="outlook_20d",
+    horizon_days=20,
+    n_classes=3,
+    class_labels=("BEARISH", "NEUTRAL", "BULLISH"),
+    description=(
+        "One-month outlook. The longest horizon supported. Beyond this, "
+        "overlapping labels leave too few effectively-independent observations "
+        "in a decade of data for the metrics to be trustworthy."
+    ),
+)
+
 AVAILABLE_TARGETS: dict[str, TargetSpec] = {
     DIRECTION_1D.name: DIRECTION_1D,
     OUTLOOK_5D.name: OUTLOOK_5D,
+    OUTLOOK_10D.name: OUTLOOK_10D,
+    OUTLOOK_20D.name: OUTLOOK_20D,
 }
+
+
+def effective_sample_size(n_rows: int, horizon: int) -> int:
+    """Number of effectively-independent observations.
+
+    Daily-sampled `h`-day forward returns overlap heavily: consecutive labels
+    for h=20 share 19 of their 20 days. The nominal row count therefore badly
+    overstates the information available, and confidence intervals computed
+    from it will be far too tight.
+
+    A standard conservative correction is `n / h` -- the count of
+    non-overlapping windows. Reported next to every long-horizon metric so a
+    "2100-sample" result is not mistaken for 2100 independent trials when it
+    is closer to 105.
+    """
+    return max(1, n_rows // max(1, horizon))
 
 
 def forward_log_return(close: pd.Series, horizon: int) -> pd.Series:
