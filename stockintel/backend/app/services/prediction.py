@@ -157,8 +157,20 @@ class PredictionResult:
         }
 
 
-def _build_model(mode: str, n_classes: int, seed: int) -> Predictor:
-    if mode in ("most_possible", "tabular_lgbm"):
+def _build_model(mode: str, n_classes: int, seed: int, horizon: int = 5) -> Predictor:
+    if mode == "most_possible":
+        from app.models.ensemble import EnsembleConfig, StackedEnsemble
+
+        return StackedEnsemble(
+            n_classes,
+            seed,
+            base_factories=[
+                ("logreg", lambda: LogisticRegressionModel(n_classes, seed)),
+                ("lgbm", lambda: LightGBMModel(n_classes, seed)),
+            ],
+            config=EnsembleConfig(inner_folds=3, horizon=horizon),
+        )
+    if mode == "tabular_lgbm":
         return LightGBMModel(n_classes, seed)
     if mode == "linear":
         return LogisticRegressionModel(n_classes, seed)
@@ -396,7 +408,9 @@ def predict(
 
     try:
         model_result = run_walk_forward(
-            lambda: _build_model(model_mode, target.n_classes, settings.random_seed),
+            lambda: _build_model(
+                model_mode, target.n_classes, settings.random_seed, target.horizon_days
+            ),
             x, y, target.class_labels, config,
             regime_series=build_regime_labels(features),
         )
@@ -445,7 +459,9 @@ def predict(
         return result
 
     # --- Fit on all data and predict the latest bar -----------------------
-    model = _build_model(model_mode, target.n_classes, settings.random_seed)
+    model = _build_model(
+        model_mode, target.n_classes, settings.random_seed, target.horizon_days
+    )
     model.fit(x, y)
 
     # Sequence models need the preceding window to predict the latest bar, so
@@ -457,6 +473,10 @@ def predict(
     # Training curves and hyperparameters, where the model exposes them.
     if hasattr(model, "training_history"):
         result.evidence["training_history"] = model.training_history()
+    # How the ensemble arrived at its combination, so "combines the strongest
+    # signals" is inspectable rather than a claim.
+    if hasattr(model, "stacking_report"):
+        result.evidence["stacking"] = model.stacking_report()
 
     # Abstain if today's confidence is below the fitted threshold.
     split_point = int(len(x) * 0.75)
