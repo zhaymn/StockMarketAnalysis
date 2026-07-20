@@ -1,0 +1,27 @@
+# Core numerical / data handling
+numpy>=1.26.0
+pandas>=2.2.0
+
+# Deep learning
+tensorflow>=2.18.0
+tensorboard>=2.18.0
+
+# Machine learning utilities
+scikit-learn>=1.4.0
+
+# Market data acquisition
+yfinance>=0.2.40
+requests>=2.31.0
+
+# Visualization
+matplotlib>=3.8.0
+plotly>=5.20.0
+
+# Web dashboard
+streamlit>=1.33.0
+
+# Model / scaler persistence
+joblib>=1.4.0
+
+# Misc utilities
+python-dateutil>=2.9.0
