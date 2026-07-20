@@ -70,14 +70,42 @@ class RiskLevel(str, Enum):
 
 
 #: Model modes exposed in the UI.
+#:
+#: "Most Possible Prediction" maps to whichever pipeline actually measured best,
+#: which the brief requires. Across 10 stock/horizon configurations under purged
+#: walk-forward, mean skill was:
+#:
+#:     LightGBM              -0.0496   <- best
+#:     Majority baseline     -0.0459
+#:     Logistic Regression   -0.0802
+#:     Stacked ensemble      -0.1296   <- worst
+#:
+#: So it maps to LightGBM, NOT to the stack. Defaulting to the ensemble because
+#: ensembles are conventionally stronger would be exactly the "blindly combine
+#: models" failure the brief warns against, and would hand users the worst
+#: performer under the most confident-sounding label.
 MODEL_MODES: dict[str, dict[str, Any]] = {
     "most_possible": {
         "label": "Most Possible Prediction",
         "recommended": True,
         "description": (
-            "Combines the platform's strongest validated signals and models. "
+            "The platform's strongest empirically validated pipeline, selected by "
+            "out-of-sample performance rather than by architecture. Currently "
+            "gradient-boosted trees, which measured best across 10 stock/horizon "
+            "configurations — ahead of both a linear model and a stacked ensemble. "
             "Represents the statistically estimated most likely outcome given "
             "available data — not a guaranteed market outcome."
+        ),
+    },
+    "stacked_ensemble": {
+        "label": "Stacked Ensemble",
+        "recommended": False,
+        "description": (
+            "Logistic meta-learner over out-of-fold predictions from the linear and "
+            "gradient-boosting models. Measured result: it degraded ROC-AUC in 10 of "
+            "10 configurations versus its own best component, because weak base "
+            "models produce noisy out-of-fold predictions the meta-learner then fits. "
+            "Retained for transparency, not because it works better."
         ),
     },
     "tabular_lgbm": {
@@ -158,7 +186,12 @@ class PredictionResult:
 
 
 def _build_model(mode: str, n_classes: int, seed: int, horizon: int = 5) -> Predictor:
-    if mode == "most_possible":
+    # "most_possible" resolves to the best-measured pipeline. See MODEL_MODES for
+    # the numbers behind this mapping; it is an empirical result, not a default
+    # chosen by architecture.
+    if mode in ("most_possible", "tabular_lgbm"):
+        return LightGBMModel(n_classes, seed)
+    if mode == "stacked_ensemble":
         from app.models.ensemble import EnsembleConfig, StackedEnsemble
 
         return StackedEnsemble(
@@ -170,8 +203,6 @@ def _build_model(mode: str, n_classes: int, seed: int, horizon: int = 5) -> Pred
             ],
             config=EnsembleConfig(inner_folds=3, horizon=horizon),
         )
-    if mode == "tabular_lgbm":
-        return LightGBMModel(n_classes, seed)
     if mode == "linear":
         return LogisticRegressionModel(n_classes, seed)
     if mode == "lstm":
