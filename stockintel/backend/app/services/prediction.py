@@ -85,8 +85,18 @@ MODEL_MODES: dict[str, dict[str, Any]] = {
         "recommended": False,
         "description": (
             "Gradient-boosted trees over technical, volatility and volume features. "
-            "Selected over an LSTM as the alternative mode because it measurably "
-            "outperformed deep sequence models on this data."
+            "One row of engineered features at a time; temporal structure enters "
+            "only through explicit lag features."
+        ),
+    },
+    "lstm": {
+        "label": "LSTM (deep sequence model)",
+        "recommended": False,
+        "description": (
+            "Two-layer LSTM reading a 20-session window of features. Measured across "
+            "8 stock/horizon configurations it did NOT outperform gradient boosting "
+            "(mean skill -0.109 vs -0.060) and took roughly 6x longer to train. "
+            "Included for comparison and transparency, not because it works better."
         ),
     },
     "linear": {
@@ -152,6 +162,12 @@ def _build_model(mode: str, n_classes: int, seed: int) -> Predictor:
         return LightGBMModel(n_classes, seed)
     if mode == "linear":
         return LogisticRegressionModel(n_classes, seed)
+    if mode == "lstm":
+        # Imported lazily: torch adds ~3s to process start, and most requests
+        # never touch the deep model.
+        from app.models.lstm import LSTMModel
+
+        return LSTMModel(n_classes, seed)
     raise ValueError(f"Unknown model mode '{mode}'.")
 
 
@@ -431,8 +447,16 @@ def predict(
     # --- Fit on all data and predict the latest bar -----------------------
     model = _build_model(model_mode, target.n_classes, settings.random_seed)
     model.fit(x, y)
-    latest_proba = model.predict_proba(x.iloc[[-1]])[0]
+
+    # Sequence models need the preceding window to predict the latest bar, so
+    # pass a trailing slice rather than a single row and take the last output.
+    tail = x.iloc[-64:] if getattr(model, "requires_sequences", False) else x.iloc[[-1]]
+    latest_proba = model.predict_proba(tail)[-1]
     predicted_class = int(latest_proba.argmax())
+
+    # Training curves and hyperparameters, where the model exposes them.
+    if hasattr(model, "training_history"):
+        result.evidence["training_history"] = model.training_history()
 
     # Abstain if today's confidence is below the fitted threshold.
     split_point = int(len(x) * 0.75)
