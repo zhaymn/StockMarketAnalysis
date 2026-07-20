@@ -6,6 +6,20 @@
       "runtimeExecutable": ".venv/Scripts/streamlit.exe",
       "runtimeArgs": ["run", "app.py", "--server.headless", "true"],
       "port": 8501
+    },
+    {
+      "name": "stockintel-backend",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--port", "8000"],
+      "cwd": "stockintel/backend",
+      "port": 8000
+    },
+    {
+      "name": "stockintel-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "stockintel/frontend",
+      "port": 3000
     }
   ]
 }

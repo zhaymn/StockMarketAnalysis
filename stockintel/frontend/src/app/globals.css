@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/*
+  StockIntel design system.
+
+  Identity is lime (#C1DF1F) on black (#000000). Lime is reserved for primary
+  actions, active states and key accents -- not for every positive value.
+  Bullish/bearish use green/red instead, because encoding "up" as lime and
+  "down" as red puts two similar-luminance yellows and reds next to each other
+  in charts and destroys readability. The brief explicitly prioritises
+  legibility over strict two-colour purity, and this is where that applies.
+
+  Surfaces step 000 -> 030 to build depth without ever lifting off pure black,
+  which stays the dominant background.
+*/
+
+@theme {
+  /* Surfaces */
+  --color-ink-000: #000000;
+  --color-ink-010: #0a0a0a;
+  --color-ink-020: #111111;
+  --color-ink-030: #171717;
+
+  /* Borders */
+  --color-line: #1f1f1f;
+  --color-line-strong: #2e2e2e;
+
+  /* Text: 4 steps, all AA-compliant on ink-010 or darker */
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #737373;
+  --color-text-faint: #525252;
+
+  /* Brand */
+  --color-lime: #c1df1f;
+  --color-lime-dim: #9cb318;
+  --color-lime-faint: #2a3208;
+
+  /* Semantic */
+  --color-bullish: #4ade80;
+  --color-bullish-dim: #16311f;
+  --color-bearish: #f87171;
+  --color-bearish-dim: #3a1a1a;
+  --color-neutral: #9ca3af;
+  --color-warning: #fbbf24;
+  --color-warning-dim: #3a2e10;
+
+  /* Typography */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+}
+
+/*
+  Force dark. This is a financial terminal, not a themeable site: the palette
+  is designed against pure black and a light rendering would break every
+  contrast decision above.
+*/
+html {
+  color-scheme: dark;
+  background-color: var(--color-ink-000);
+}
+
+body {
+  background-color: var(--color-ink-000);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numerals align in columns and never shift width as values tick. */
+.tnum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Section label: the small uppercase key above each block. */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+::selection {
+  background-color: var(--color-lime);
+  color: var(--color-ink-000);
+}
+
+/* Scrollbars styled so overflow regions don't read as broken layout. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-line-strong);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-lime);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
