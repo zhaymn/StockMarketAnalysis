@@ -31,7 +31,18 @@ interface NewsArticle {
 
 interface NewsPayload {
   sections: Record<string, NewsArticle[]>;
-  aggregate_sentiment: Record<string, { available: boolean; label?: string; net_score?: number; n_articles?: number; reason?: string }>;
+  aggregate_sentiment: Record<
+    string,
+    {
+      available: boolean;
+      label?: string;
+      net_score?: number;
+      n_articles?: number;
+      reason?: string;
+      coverage?: "ADEQUATE" | "THIN" | "INSUFFICIENT";
+      coverage_note?: string;
+    }
+  >;
   sentiment_model: { name: string; available: boolean; limitations: string };
   note: string;
 }
@@ -157,7 +168,7 @@ export function NewsSection({ symbol }: { symbol: string }) {
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="eyebrow">{title}</h3>
                   {aggregate?.available && (
-                    <span className="text-xs text-text-muted">
+                    <span className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
                       Weighted sentiment{" "}
                       <span className="tnum font-semibold text-text-primary">
                         {aggregate.net_score! > 0 ? "+" : ""}
@@ -165,9 +176,22 @@ export function NewsSection({ symbol }: { symbol: string }) {
                       </span>{" "}
                       across {aggregate.n_articles} deduplicated articles
                       <InfoTip text="Signed FinBERT score weighted by recency, relevance and model confidence — not a count of positive versus negative headlines." />
+                      {aggregate.coverage && aggregate.coverage !== "ADEQUATE" && (
+                        <Badge tone="warning">
+                          {aggregate.coverage === "THIN"
+                            ? "Thin coverage"
+                            : "Insufficient coverage"}
+                        </Badge>
+                      )}
                     </span>
                   )}
                 </div>
+
+                {aggregate?.coverage_note && (
+                  <p className="mb-3 rounded-lg border border-warning/25 bg-warning-dim/30 px-3 py-2 text-xs leading-relaxed text-text-secondary">
+                    {aggregate.coverage_note}
+                  </p>
+                )}
 
                 {articles.length === 0 ? (
                   <Card>

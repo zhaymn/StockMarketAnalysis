@@ -264,12 +264,26 @@ def assess_impact(
     # --- 4. Relationship and base relevance -------------------------------
     reasons: list[str] = []
 
-    if symbol_tagged or matched_names:
+    if symbol_tagged and matched_names:
+        # Both the provider tag and the article text agree.
         relationship = Relationship.DIRECT
-        relevance = 0.95 if symbol_tagged else 0.85
+        relevance = 0.95
+        reasons.append(f"Article names {profile.name} and is tagged {profile.symbol}")
+    elif matched_names:
+        relationship = Relationship.DIRECT
+        relevance = 0.85
+        reasons.append(f"Article names {profile.name}")
+    elif symbol_tagged:
+        # Provider tag with no corroborating mention in the title or
+        # description. Observed in practice: an unrelated AI-funding story came
+        # back tagged AAPL and, trusted at face value, scored maximum relevance
+        # and pushed the aggregate sentiment positive on its own. A tag we
+        # cannot corroborate is a weak signal, so it is scored as one.
+        relationship = Relationship.DIRECT
+        relevance = 0.50
         reasons.append(
-            f"Article names {profile.name}" if matched_names
-            else f"Provider tagged this article with {profile.symbol}"
+            f"Tagged {profile.symbol} by the news provider, but {profile.name} is not "
+            f"named in the headline or summary — relevance may be indirect"
         )
     elif matched_competitors:
         relationship = Relationship.COMPETITOR

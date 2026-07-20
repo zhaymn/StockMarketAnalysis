@@ -34,6 +34,10 @@ logger = get_logger(__name__)
 
 MODEL_NAME = "ProsusAI/finbert"
 
+#: Articles needed before an aggregate sentiment reading is treated as a
+#: reliable measure rather than an indicative one.
+MIN_ARTICLES_FOR_CONFIDENT_AGGREGATE = 8
+
 #: FinBERT's positional limit is 512 tokens; titles plus descriptions sit far
 #: below this, but truncation is set explicitly so a long description can never
 #: raise at inference time.
@@ -254,13 +258,36 @@ def aggregate_sentiment(
     else:
         label = "NEUTRAL"
 
+    # Coverage caveat. An aggregate over 3 articles is not comparable to one
+    # over 30: a single outlier dominates it. The news plan in use returns very
+    # few articles per request, so this is the common case rather than an edge
+    # case, and the reading must be labelled accordingly instead of being
+    # presented with the same weight as a well-covered one.
+    n_scored = len(scored)
+    if n_scored >= MIN_ARTICLES_FOR_CONFIDENT_AGGREGATE:
+        coverage = "ADEQUATE"
+        coverage_note = ""
+    elif n_scored >= 3:
+        coverage = "THIN"
+        coverage_note = (
+            f"Based on only {n_scored} articles — a single story can dominate this "
+            f"reading. Treat it as indicative rather than a reliable sentiment measure."
+        )
+    else:
+        coverage = "INSUFFICIENT"
+        coverage_note = (
+            f"Only {n_scored} article(s) available. Too few to characterise sentiment."
+        )
+
     return {
         "available": True,
         "label": label,
         "net_score": round(net_score, 4),
-        "n_articles": len(scored),
-        "n_unscoreable": len(articles) - len(scored),
+        "n_articles": n_scored,
+        "n_unscoreable": len(articles) - n_scored,
         "counts": counts,
+        "coverage": coverage,
+        "coverage_note": coverage_note,
         "method": (
             "Signed FinBERT score per article, weighted by recency (48h half-life), "
             "relevance and model confidence. Syndicated duplicates removed first."
