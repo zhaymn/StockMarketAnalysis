@@ -23,6 +23,12 @@ a news pipeline that keeps text sentiment separate from expected price impact.
 > [docs/legacy-streamlit-project.md](docs/legacy-streamlit-project.md).
 > See [The other project in this repository](#the-other-project-in-this-repository).
 
+![The dashboard: market and model selection, and the prediction verdict](docs/screenshots/prediction.png)
+
+*The default state for most stocks. The model did not beat its baseline, so no
+directional call is issued — and the panel shows the comparison that produced
+that verdict rather than asking you to take it on trust.*
+
 ---
 
 ## Contents
@@ -30,6 +36,7 @@ a news pipeline that keeps text sentiment separate from expected price impact.
 - [The headline result](#the-headline-result)
 - [Quick start](#quick-start)
 - [What it does](#what-it-does)
+- [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Measured results](#measured-results)
 - [How honesty is enforced](#how-honesty-is-enforced)
@@ -147,6 +154,39 @@ with the evidence behind it.
   per-regime breakdown, feature importance.
 - **News & current affairs** — company, sector and macro news with FinBERT
   sentiment, LLM event classification and per-article impact analysis.
+
+---
+
+## Screenshots
+
+**Model evidence** — accuracy is never shown without the baseline beside it, the
+calibration gate withholds probabilities that fail it, and performance is broken
+down per market regime because a model that only works in calm markets is
+dangerous precisely when a prediction matters.
+
+![Model evidence: accuracy vs baseline, calibration, regime breakdown, feature importance](docs/screenshots/model-evidence.png)
+
+**Charts** — candlesticks with SMA 20/50/200 and volume, RSI with its
+conventional bands, MACD normalised by price, and rolling annualised volatility.
+
+![Price history, RSI, MACD and rolling volatility charts](docs/screenshots/charts.png)
+
+**Why this prediction** — factors derived from computed signals, each citing the
+value behind it. Nothing appears here that isn't in the data.
+
+![Bullish, bearish and risk factors with supporting evidence](docs/screenshots/why-this-prediction.png)
+
+**News & current affairs** — per-article text sentiment and expected company
+impact shown as separate fields, with relevance, magnitude, horizon, coverage
+caveats and which classifier produced the event type.
+
+![Company, sector and macro news with sentiment and impact analysis](docs/screenshots/news.png)
+
+The full dashboard in one image:
+[docs/screenshots/dashboard-full.png](docs/screenshots/dashboard-full.png).
+
+Captured by [`stockintel/frontend/scripts/screenshot.mjs`](stockintel/frontend/scripts/screenshot.mjs)
+against a live instance — run it with both dev servers up to regenerate.
 
 ---
 
