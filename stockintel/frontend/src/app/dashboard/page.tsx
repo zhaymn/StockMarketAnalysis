@@ -133,7 +133,7 @@ export default function Dashboard() {
 
       {analysis && <StockHeader analysis={analysis} />}
 
-      <main className="mx-auto max-w-[1600px] space-y-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <main className="mx-auto max-w-[110rem] space-y-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         {isLoading && !analysis ? (
           <LoadingState />
         ) : error ? (
@@ -170,7 +170,7 @@ export default function Dashboard() {
 function TopBar() {
   return (
     <header className="border-b border-line bg-ink-000">
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[110rem] items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-lime">
             <span className="text-sm font-bold text-ink-000">SI</span>

@@ -35,7 +35,7 @@ export function ControlBar({
 }) {
   return (
     <div className="border-b border-line bg-ink-010/80 backdrop-blur-sm">
-      <div className="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[110rem] px-4 py-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="lg:col-span-2">
             <FieldLabel>Market</FieldLabel>
