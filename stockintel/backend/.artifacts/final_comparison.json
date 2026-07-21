@@ -1,0 +1,676 @@
+{
+  "results": {
+    "AAPL|outlook_5d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3585,
+      "accuracy_std": 0.0159,
+      "baseline_accuracy_mean": 0.3964,
+      "skill_score_mean": -0.0665,
+      "f1_macro_mean": 0.1758,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "AAPL|outlook_5d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3696,
+      "accuracy_std": 0.026,
+      "baseline_accuracy_mean": 0.3964,
+      "skill_score_mean": -0.0453,
+      "f1_macro_mean": 0.3453,
+      "matthews_corrcoef_mean": 0.036,
+      "roc_auc_mean": 0.5258,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "AAPL|outlook_5d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3864,
+      "accuracy_std": 0.0228,
+      "baseline_accuracy_mean": 0.3964,
+      "skill_score_mean": -0.019,
+      "f1_macro_mean": 0.3549,
+      "matthews_corrcoef_mean": 0.046,
+      "roc_auc_mean": 0.5279,
+      "folds_beating_baseline": 2,
+      "consistency": "2/4 folds beat baseline"
+    },
+    "AAPL|outlook_5d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3223,
+      "accuracy_std": 0.0472,
+      "baseline_accuracy_mean": 0.3964,
+      "skill_score_mean": -0.1296,
+      "f1_macro_mean": 0.289,
+      "matthews_corrcoef_mean": 0.0138,
+      "roc_auc_mean": 0.5003,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "AAPL|outlook_20d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.4063,
+      "accuracy_std": 0.0268,
+      "baseline_accuracy_mean": 0.4063,
+      "skill_score_mean": 0.0,
+      "f1_macro_mean": 0.1924,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "AAPL|outlook_20d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3688,
+      "accuracy_std": 0.0605,
+      "baseline_accuracy_mean": 0.4063,
+      "skill_score_mean": -0.0609,
+      "f1_macro_mean": 0.3478,
+      "matthews_corrcoef_mean": 0.0317,
+      "roc_auc_mean": 0.4991,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "AAPL|outlook_20d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3843,
+      "accuracy_std": 0.0558,
+      "baseline_accuracy_mean": 0.4063,
+      "skill_score_mean": -0.0382,
+      "f1_macro_mean": 0.3281,
+      "matthews_corrcoef_mean": 0.021,
+      "roc_auc_mean": 0.5309,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "AAPL|outlook_20d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3266,
+      "accuracy_std": 0.0429,
+      "baseline_accuracy_mean": 0.4063,
+      "skill_score_mean": -0.138,
+      "f1_macro_mean": 0.2996,
+      "matthews_corrcoef_mean": -0.0054,
+      "roc_auc_mean": 0.5078,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "NVDA|outlook_5d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.4033,
+      "accuracy_std": 0.0344,
+      "baseline_accuracy_mean": 0.4151,
+      "skill_score_mean": -0.0204,
+      "f1_macro_mean": 0.1913,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "NVDA|outlook_5d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.4039,
+      "accuracy_std": 0.0378,
+      "baseline_accuracy_mean": 0.4151,
+      "skill_score_mean": -0.0186,
+      "f1_macro_mean": 0.3354,
+      "matthews_corrcoef_mean": 0.0536,
+      "roc_auc_mean": 0.533,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "NVDA|outlook_5d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3828,
+      "accuracy_std": 0.0311,
+      "baseline_accuracy_mean": 0.4151,
+      "skill_score_mean": -0.0554,
+      "f1_macro_mean": 0.3023,
+      "matthews_corrcoef_mean": 0.0122,
+      "roc_auc_mean": 0.5277,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "NVDA|outlook_5d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3485,
+      "accuracy_std": 0.0282,
+      "baseline_accuracy_mean": 0.4151,
+      "skill_score_mean": -0.1188,
+      "f1_macro_mean": 0.3323,
+      "matthews_corrcoef_mean": 0.0318,
+      "roc_auc_mean": 0.5095,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "NVDA|outlook_20d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3951,
+      "accuracy_std": 0.0668,
+      "baseline_accuracy_mean": 0.4307,
+      "skill_score_mean": -0.0657,
+      "f1_macro_mean": 0.1877,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "NVDA|outlook_20d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3656,
+      "accuracy_std": 0.0379,
+      "baseline_accuracy_mean": 0.4307,
+      "skill_score_mean": -0.1211,
+      "f1_macro_mean": 0.3005,
+      "matthews_corrcoef_mean": 0.0034,
+      "roc_auc_mean": 0.4901,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "NVDA|outlook_20d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3614,
+      "accuracy_std": 0.091,
+      "baseline_accuracy_mean": 0.4307,
+      "skill_score_mean": -0.1284,
+      "f1_macro_mean": 0.2901,
+      "matthews_corrcoef_mean": -0.0193,
+      "roc_auc_mean": 0.4904,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "NVDA|outlook_20d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3476,
+      "accuracy_std": 0.0888,
+      "baseline_accuracy_mean": 0.4307,
+      "skill_score_mean": -0.1535,
+      "f1_macro_mean": 0.2867,
+      "matthews_corrcoef_mean": -0.0233,
+      "roc_auc_mean": 0.4669,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "MSFT|outlook_5d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3814,
+      "accuracy_std": 0.0338,
+      "baseline_accuracy_mean": 0.4113,
+      "skill_score_mean": -0.0556,
+      "f1_macro_mean": 0.1838,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "MSFT|outlook_5d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3672,
+      "accuracy_std": 0.0177,
+      "baseline_accuracy_mean": 0.4113,
+      "skill_score_mean": -0.0781,
+      "f1_macro_mean": 0.3558,
+      "matthews_corrcoef_mean": 0.0693,
+      "roc_auc_mean": 0.5643,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "MSFT|outlook_5d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.4133,
+      "accuracy_std": 0.0385,
+      "baseline_accuracy_mean": 0.4113,
+      "skill_score_mean": 0.0024,
+      "f1_macro_mean": 0.37,
+      "matthews_corrcoef_mean": 0.0916,
+      "roc_auc_mean": 0.5677,
+      "folds_beating_baseline": 2,
+      "consistency": "2/4 folds beat baseline"
+    },
+    "MSFT|outlook_5d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1607,
+      "accuracy_mean": 0.3566,
+      "accuracy_std": 0.0165,
+      "baseline_accuracy_mean": 0.4113,
+      "skill_score_mean": -0.099,
+      "f1_macro_mean": 0.3336,
+      "matthews_corrcoef_mean": 0.0614,
+      "roc_auc_mean": 0.5528,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "MSFT|outlook_20d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3506,
+      "accuracy_std": 0.0713,
+      "baseline_accuracy_mean": 0.4107,
+      "skill_score_mean": -0.099,
+      "f1_macro_mean": 0.1717,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "MSFT|outlook_20d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3744,
+      "accuracy_std": 0.0571,
+      "baseline_accuracy_mean": 0.4107,
+      "skill_score_mean": -0.0608,
+      "f1_macro_mean": 0.3473,
+      "matthews_corrcoef_mean": 0.0756,
+      "roc_auc_mean": 0.548,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "MSFT|outlook_20d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3977,
+      "accuracy_std": 0.0793,
+      "baseline_accuracy_mean": 0.4107,
+      "skill_score_mean": -0.0181,
+      "f1_macro_mean": 0.3365,
+      "matthews_corrcoef_mean": 0.0561,
+      "roc_auc_mean": 0.5667,
+      "folds_beating_baseline": 2,
+      "consistency": "2/4 folds beat baseline"
+    },
+    "MSFT|outlook_20d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1595,
+      "accuracy_mean": 0.3876,
+      "accuracy_std": 0.065,
+      "baseline_accuracy_mean": 0.4107,
+      "skill_score_mean": -0.0366,
+      "f1_macro_mean": 0.3481,
+      "matthews_corrcoef_mean": 0.0752,
+      "roc_auc_mean": 0.5625,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_5d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.4067,
+      "accuracy_std": 0.0352,
+      "baseline_accuracy_mean": 0.4067,
+      "skill_score_mean": 0.0,
+      "f1_macro_mean": 0.1924,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_5d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3253,
+      "accuracy_std": 0.0648,
+      "baseline_accuracy_mean": 0.4067,
+      "skill_score_mean": -0.1355,
+      "f1_macro_mean": 0.2909,
+      "matthews_corrcoef_mean": 0.0025,
+      "roc_auc_mean": 0.529,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_5d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3713,
+      "accuracy_std": 0.0475,
+      "baseline_accuracy_mean": 0.4067,
+      "skill_score_mean": -0.0601,
+      "f1_macro_mean": 0.3381,
+      "matthews_corrcoef_mean": 0.0446,
+      "roc_auc_mean": 0.5325,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_5d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.326,
+      "accuracy_std": 0.0649,
+      "baseline_accuracy_mean": 0.4067,
+      "skill_score_mean": -0.1356,
+      "f1_macro_mean": 0.2783,
+      "matthews_corrcoef_mean": 0.0169,
+      "roc_auc_mean": 0.5088,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_20d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3919,
+      "accuracy_std": 0.038,
+      "baseline_accuracy_mean": 0.4066,
+      "skill_score_mean": -0.0257,
+      "f1_macro_mean": 0.1873,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_20d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3681,
+      "accuracy_std": 0.0333,
+      "baseline_accuracy_mean": 0.4066,
+      "skill_score_mean": -0.0693,
+      "f1_macro_mean": 0.3212,
+      "matthews_corrcoef_mean": 0.0687,
+      "roc_auc_mean": 0.5754,
+      "folds_beating_baseline": 2,
+      "consistency": "2/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_20d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3963,
+      "accuracy_std": 0.0671,
+      "baseline_accuracy_mean": 0.4066,
+      "skill_score_mean": -0.0252,
+      "f1_macro_mean": 0.3451,
+      "matthews_corrcoef_mean": 0.0989,
+      "roc_auc_mean": 0.5682,
+      "folds_beating_baseline": 2,
+      "consistency": "2/4 folds beat baseline"
+    },
+    "RELIANCE.NS|outlook_20d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3579,
+      "accuracy_std": 0.0481,
+      "baseline_accuracy_mean": 0.4066,
+      "skill_score_mean": -0.0884,
+      "f1_macro_mean": 0.3398,
+      "matthews_corrcoef_mean": 0.0844,
+      "roc_auc_mean": 0.5596,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_5d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.4127,
+      "accuracy_std": 0.0303,
+      "baseline_accuracy_mean": 0.4127,
+      "skill_score_mean": 0.0,
+      "f1_macro_mean": 0.1945,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_5d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3313,
+      "accuracy_std": 0.0623,
+      "baseline_accuracy_mean": 0.4127,
+      "skill_score_mean": -0.1387,
+      "f1_macro_mean": 0.3071,
+      "matthews_corrcoef_mean": 0.0237,
+      "roc_auc_mean": 0.5259,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_5d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3533,
+      "accuracy_std": 0.0283,
+      "baseline_accuracy_mean": 0.4127,
+      "skill_score_mean": -0.1016,
+      "f1_macro_mean": 0.3202,
+      "matthews_corrcoef_mean": 0.0306,
+      "roc_auc_mean": 0.5261,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_5d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.302,
+      "accuracy_std": 0.0412,
+      "baseline_accuracy_mean": 0.4127,
+      "skill_score_mean": -0.195,
+      "f1_macro_mean": 0.289,
+      "matthews_corrcoef_mean": -0.0133,
+      "roc_auc_mean": 0.5151,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_20d|Majority baseline": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3471,
+      "accuracy_std": 0.1012,
+      "baseline_accuracy_mean": 0.4179,
+      "skill_score_mean": -0.1262,
+      "f1_macro_mean": 0.1688,
+      "matthews_corrcoef_mean": 0.0,
+      "roc_auc_mean": 0.5,
+      "folds_beating_baseline": 0,
+      "consistency": "0/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_20d|Logistic Regression": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3788,
+      "accuracy_std": 0.0806,
+      "baseline_accuracy_mean": 0.4179,
+      "skill_score_mean": -0.0734,
+      "f1_macro_mean": 0.3603,
+      "matthews_corrcoef_mean": 0.1176,
+      "roc_auc_mean": 0.5882,
+      "folds_beating_baseline": 2,
+      "consistency": "2/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_20d|LightGBM": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3895,
+      "accuracy_std": 0.0402,
+      "baseline_accuracy_mean": 0.4179,
+      "skill_score_mean": -0.0526,
+      "f1_macro_mean": 0.3589,
+      "matthews_corrcoef_mean": 0.1081,
+      "roc_auc_mean": 0.5742,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    },
+    "TCS.NS|outlook_20d|Most Possible (stack)": {
+      "n_folds": 4,
+      "total_test_samples": 1500,
+      "accuracy_mean": 0.3075,
+      "accuracy_std": 0.0678,
+      "baseline_accuracy_mean": 0.4179,
+      "skill_score_mean": -0.2014,
+      "f1_macro_mean": 0.2926,
+      "matthews_corrcoef_mean": 0.0284,
+      "roc_auc_mean": 0.5245,
+      "folds_beating_baseline": 1,
+      "consistency": "1/4 folds beat baseline"
+    }
+  },
+  "stacking": [
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1372,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.6091,
+        "lgbm": 0.3909
+      },
+      "config": "AAPL|outlook_5d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1362,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.6281,
+        "lgbm": 0.3719
+      },
+      "config": "AAPL|outlook_20d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1372,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.3964,
+        "lgbm": 0.6036
+      },
+      "config": "NVDA|outlook_5d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1362,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.5172,
+        "lgbm": 0.4828
+      },
+      "config": "NVDA|outlook_20d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1372,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.4976,
+        "lgbm": 0.5024
+      },
+      "config": "MSFT|outlook_5d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1362,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.3918,
+        "lgbm": 0.6082
+      },
+      "config": "MSFT|outlook_20d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1284,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.5243,
+        "lgbm": 0.4757
+      },
+      "config": "RELIANCE.NS|outlook_5d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1283,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.5394,
+        "lgbm": 0.4606
+      },
+      "config": "RELIANCE.NS|outlook_20d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1284,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.4241,
+        "lgbm": 0.5759
+      },
+      "config": "TCS.NS|outlook_5d"
+    },
+    {
+      "base_models": [
+        "logreg",
+        "lgbm"
+      ],
+      "used_meta_learner": true,
+      "combination_method": "Logistic meta-learner fitted on out-of-fold base predictions",
+      "oof_rows_available": 1283,
+      "inner_folds": 3,
+      "base_model_weights": {
+        "logreg": 0.7504,
+        "lgbm": 0.2496
+      },
+      "config": "TCS.NS|outlook_20d"
+    }
+  ]
+}
