@@ -159,6 +159,17 @@ with the evidence behind it.
 
 ## Screenshots
 
+**Switching markets** — United States to India. Currency, benchmark, exchange
+timezone and the searchable stock universe all change together, and the model
+re-validates against the new series. Currencies never mix: the same view goes
+from `$326.59` against the S&P 500 to `₹1,315.90` against the NIFTY 50, with
+market status reading "Pre-open" in New York and "Market open" in Mumbai.
+
+![Switching from the United States market to India, showing currency, benchmark and stock universe change together](docs/screenshots/market-switch.gif)
+
+*The pause is real: switching markets triggers a fresh purged walk-forward
+validation on the new series rather than reusing anything from the previous one.*
+
 **Model evidence** — accuracy is never shown without the baseline beside it, the
 calibration gate withholds probabilities that fail it, and performance is broken
 down per market regime because a model that only works in calm markets is
@@ -185,8 +196,11 @@ caveats and which classifier produced the event type.
 The full dashboard in one image:
 [docs/screenshots/dashboard-full.png](docs/screenshots/dashboard-full.png).
 
-Captured by [`stockintel/frontend/scripts/screenshot.mjs`](stockintel/frontend/scripts/screenshot.mjs)
-against a live instance — run it with both dev servers up to regenerate.
+Captured against a live instance by
+[`screenshot.mjs`](stockintel/frontend/scripts/screenshot.mjs) and
+[`demo-gif.mjs`](stockintel/frontend/scripts/demo-gif.mjs) — run either with
+both dev servers up to regenerate. The GIF is encoded in pure JavaScript
+(`pngjs` → `gifenc`), so no ffmpeg install is required.
 
 ---
 
