@@ -188,6 +188,13 @@ def test_news_reports_not_configured_rather_than_fabricating():
         # Must be actionable, not a bare failure.
         assert payload["env_var"] == "MARKETAUX_API_KEY"
         assert "marketaux.com" in payload["obtain_at"]
+    elif response.status_code == 429:
+        # Configured, but the plan allowance is spent. A real third state on a
+        # quota-limited tier, and it must read as rate limiting rather than as
+        # a provider fault the user can do nothing about.
+        payload = response.json()
+        assert payload["code"] == "rate_limited"
+        assert "allowance" in payload["message"].lower()
     else:
         assert response.status_code == 200
         payload = response.json()
