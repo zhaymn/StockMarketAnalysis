@@ -1,0 +1,20 @@
+# Keep the build context tiny. Without this, Docker uploads the ~2GB local
+# .venv as build context and the build is slow or fails outright.
+
+.venv/
+.cache/
+.artifacts/
+.hf_cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Never ship secrets into an image.
+.env
+
+# Not needed at runtime.
+tests/
+scripts/
+notebooks/
+*.md
+pytest.ini

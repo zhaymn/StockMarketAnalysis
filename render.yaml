@@ -1,0 +1,66 @@
+# Render blueprint for StockIntel.
+#
+# One-click deploy: in the Render dashboard, New > Blueprint, point it at this
+# repo. Render reads this file and provisions both services.
+#
+# Two things are deliberately left for you to set by hand, because they cannot
+# be committed or known before the first deploy:
+#
+#   1. API keys (FRED_API_KEY etc.) — secrets, marked `sync: false`, entered in
+#      the Render dashboard. See docs/DEPLOYMENT.md.
+#   2. The two cross-reference URLs (each service's public URL is only known
+#      after it first deploys) — also `sync: false`. The deploy guide walks
+#      through the one-time step of pasting each service's URL into the other.
+
+services:
+  # --------------------------------------------------------------- backend ---
+  - type: web
+    name: stockintel-backend
+    runtime: docker
+    dockerfilePath: ./stockintel/backend/Dockerfile
+    dockerContext: ./stockintel/backend
+    # Standard = 2GB RAM. The Starter tier (512MB) OOMs if FinBERT or the LSTM
+    # mode loads; it may suffice for a FRED-only deployment using only the
+    # default LightGBM mode, but Standard is the safe choice.
+    plan: standard
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: STOCKINTEL_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      # --- Secrets: set these in the dashboard, never in the repo -----------
+      # FRED is free and safe to expose publicly. Marketaux and Gemini are
+      # left unset by default: a public site would exhaust Marketaux's 100/day
+      # in minutes and let anyone spend your Gemini quota. With them unset, the
+      # News and Sentiment sections show their honest NOT CONFIGURED state.
+      - key: FRED_API_KEY
+        sync: false
+      - key: MARKETAUX_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      # --- Set to the frontend's URL after its first deploy (CORS) ----------
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+  # -------------------------------------------------------------- frontend ---
+  - type: web
+    name: stockintel-frontend
+    runtime: node
+    rootDir: stockintel/frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start -- -p $PORT
+    plan: starter
+    region: oregon
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.0"
+      # NEXT_PUBLIC_ vars are baked in at BUILD time, so this must be set
+      # before the build runs. Set it to the backend's URL after that service's
+      # first deploy, then trigger a frontend rebuild.
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
