@@ -135,6 +135,19 @@ must only ever hold empty placeholders.
 without notice (`gemini-2.5-flash` returned HTTP 404 *"no longer available to
 new users"* during development).
 
+### Deploying
+
+A [Render blueprint](render.yaml) provisions both services in one click, and
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) is the step-by-step guide. Two things to
+know before you start:
+
+- **The backend needs a paid instance** (~2 GB RAM). PyTorch plus per-request
+  walk-forward validation will not fit a free tier.
+- **Deploy with FRED only.** It is free and safe to expose. Marketaux (100
+  req/day) and Gemini would be exhausted or abused by public traffic, so they
+  are left unset by default — the app shows their honest `NOT CONFIGURED` state
+  rather than leaking or burning your keys.
+
 ---
 
 ## What it does
