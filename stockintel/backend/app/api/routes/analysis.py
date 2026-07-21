@@ -113,11 +113,78 @@ async def analyse(
     }
 
 
+def _forecast_projection(
+    frame: pd.DataFrame,
+    prediction: dict[str, object],
+    conventions,
+) -> dict[str, object] | None:
+    """Project the prediction's historical outcome range forward from the last close.
+
+    Deliberately **not** a forecast price line. The model predicts a direction,
+    not a path, so drawing a single projected price would invent a precision
+    that does not exist and would sit on the chart looking exactly like the
+    actual data beside it.
+
+    What is drawn instead is the empirical distribution of what actually
+    happened, historically, over this horizon, on days that resolved to the
+    predicted class — the same quantiles shown in the prediction card. It is a
+    cone of historical outcomes, not a claim about this particular future.
+
+    Returns None when no directional call was issued, which is the common case.
+    Showing a cone under a NO_EDGE verdict would contradict the verdict.
+    """
+    if prediction.get("verdict") != "DIRECTIONAL":
+        return None
+
+    quantiles = prediction.get("expected_return_range")
+    if not quantiles:
+        return None
+
+    last_close = float(frame["Close"].iloc[-1])
+    last_date = frame.index[-1]
+    horizon = int(prediction["target"]["horizon_days"])
+
+    # Project over business days. This is a display axis, not a claim about
+    # which specific sessions the exchange will hold.
+    future_dates = pd.bdate_range(
+        start=last_date + pd.Timedelta(days=1), periods=horizon
+    )
+
+    def path(total_return: float) -> list[float]:
+        # Interpolate linearly in log space so the endpoint is exact and the
+        # intermediate points are not implied to be predictions in themselves.
+        end_log = float(np.log1p(total_return))
+        return [
+            round(last_close * float(np.exp(end_log * (i + 1) / horizon)), 4)
+            for i in range(horizon)
+        ]
+
+    return {
+        "available": True,
+        "anchor_date": last_date.date().isoformat(),
+        "anchor_close": round(last_close, 4),
+        "dates": [d.date().isoformat() for d in future_dates],
+        "median": path(quantiles["median"]),
+        "upper": path(quantiles["p90"]),
+        "lower": path(quantiles["p10"]),
+        "direction": prediction.get("direction"),
+        "horizon_days": horizon,
+        "basis": quantiles["basis"],
+        "caveat": (
+            "This is the historical distribution of outcomes for this predicted "
+            "class, projected from the last close. It is not a price forecast, "
+            "and the band is not a confidence interval for this specific future."
+        ),
+    }
+
+
 @router.get("/{market_id}/{symbol}/chart")
 async def chart(
     market_id: str,
     symbol: str,
     range: str = Query("1y", pattern="^(1m|3m|6m|1y|5y|max)$"),
+    target: str = Query("outlook_5d"),
+    mode: str = Query("most_possible"),
 ) -> dict[str, object]:
     """OHLCV plus indicator series for the charts.
 
@@ -184,4 +251,34 @@ async def chart(
             series(feature_window["volatility_21d"])
             if "volatility_21d" in feature_window else None
         ),
+        "forecast": _forecast_cached(market_id, symbol, frame, features, conventions, target, mode),
     }
+
+
+def _forecast_cached(
+    market_id: str,
+    symbol: str,
+    frame: pd.DataFrame,
+    features: pd.DataFrame,
+    conventions,
+    target: str,
+    mode: str,
+) -> dict[str, object] | None:
+    """Run the prediction for the chart's forecast overlay.
+
+    Wrapped so a prediction failure degrades the overlay to absent rather than
+    failing the whole chart request -- the price history is useful on its own.
+    """
+    from app.services.analytics import build_analytics
+    from app.services.prediction import predict
+
+    try:
+        analytics = build_analytics(frame, features, conventions, None).to_dict()
+        prediction = predict(
+            symbol=symbol, frame=frame, features=features, conventions=conventions,
+            analytics=analytics, target_name=target, model_mode=mode,
+        ).to_dict()
+        return _forecast_projection(frame, prediction, conventions)
+    except Exception as exc:
+        logger.info("Forecast overlay unavailable for %s: %s", symbol, exc)
+        return None

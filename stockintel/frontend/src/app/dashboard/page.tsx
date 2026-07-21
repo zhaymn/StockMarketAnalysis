@@ -16,6 +16,7 @@ import { PredictionCard } from "@/components/PredictionCard";
 import { ChartSection } from "@/components/Charts";
 import { DetailedAnalytics, Fundamentals, KeyStatistics } from "@/components/Analytics";
 import { ModelEvidence, ModelTransparency, WhyThisPrediction } from "@/components/Evidence";
+import { MacroContext } from "@/components/MacroContext";
 import { NewsSection } from "@/components/NewsSection";
 import { Card, EmptyState, Skeleton } from "@/components/ui";
 
@@ -145,11 +146,17 @@ export default function Dashboard() {
           <>
             <PredictionCard analysis={analysis} />
             <KeyStatistics analysis={analysis} />
-            <ChartSection marketId={marketId} symbol={analysis.symbol} />
+            <ChartSection
+              marketId={marketId}
+              symbol={analysis.symbol}
+              target={target}
+              mode={mode}
+            />
             <DetailedAnalytics analysis={analysis} />
             <Fundamentals analysis={analysis} />
             <ModelEvidence analysis={analysis} />
             <WhyThisPrediction analysis={analysis} />
+            <MacroContext marketId={marketId} />
             <NewsSection symbol={analysis.symbol} />
             <ModelTransparency analysis={analysis} />
             <Disclaimer text={disclaimer} />

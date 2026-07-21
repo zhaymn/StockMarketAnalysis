@@ -12,6 +12,7 @@ import type {
   ApiError,
   ChartResponse,
   IntegrationStatus,
+  MacroSnapshot,
   Market,
   ModelMode,
   Stock,
@@ -112,11 +113,22 @@ export const api = {
       signal,
     ),
 
-  chart: (marketId: string, symbol: string, range: string, signal?: AbortSignal) =>
+  chart: (
+    marketId: string,
+    symbol: string,
+    range: string,
+    target: string,
+    mode: string,
+    signal?: AbortSignal,
+  ) =>
     request<ChartResponse>(
-      `/api/analysis/${marketId}/${encodeURIComponent(symbol)}/chart?range=${range}`,
+      `/api/analysis/${marketId}/${encodeURIComponent(symbol)}/chart`
+        + `?range=${range}&target=${target}&mode=${mode}`,
       signal,
     ),
+
+  macro: (marketId: string, signal?: AbortSignal) =>
+    request<MacroSnapshot>(`/api/macro/${marketId}`, signal),
 
   news: (symbol: string, signal?: AbortSignal) =>
     request<Record<string, unknown>>(`/api/news/${encodeURIComponent(symbol)}`, signal),
