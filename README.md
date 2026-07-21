@@ -1,5 +1,13 @@
 # StockIntel
 
+![Switching from the United States market to India: currency, benchmark, stock universe and model validation all change together](docs/screenshots/market-switch.gif)
+
+*Switching markets: `$326.59` against the S&P 500 becomes `₹1,315.90` against the
+NIFTY 50. Currency, benchmark, exchange timezone and the searchable stock
+universe change together — market status reads "Pre-open" in New York but
+"Market open" in Mumbai. The pause is real: the model re-validates on the new
+series rather than reusing anything from the previous one.*
+
 An AI stock-market prediction and intelligence platform for US and Indian
 equities, built to answer a question honestly rather than to look confident:
 
@@ -22,12 +30,6 @@ a news pipeline that keeps text sentiment separate from expected price impact.
 > documented in
 > [docs/legacy-streamlit-project.md](docs/legacy-streamlit-project.md).
 > See [The other project in this repository](#the-other-project-in-this-repository).
-
-![The dashboard: market and model selection, and the prediction verdict](docs/screenshots/prediction.png)
-
-*The default state for most stocks. The model did not beat its baseline, so no
-directional call is issued — and the panel shows the comparison that produced
-that verdict rather than asking you to take it on trust.*
 
 ---
 
@@ -159,16 +161,11 @@ with the evidence behind it.
 
 ## Screenshots
 
-**Switching markets** — United States to India. Currency, benchmark, exchange
-timezone and the searchable stock universe all change together, and the model
-re-validates against the new series. Currencies never mix: the same view goes
-from `$326.59` against the S&P 500 to `₹1,315.90` against the NIFTY 50, with
-market status reading "Pre-open" in New York and "Market open" in Mumbai.
+**The prediction verdict** — the default state for most stocks. The model did
+not beat its baseline, so no directional call is issued, and the panel shows the
+comparison that produced that verdict rather than asking you to take it on trust.
 
-![Switching from the United States market to India, showing currency, benchmark and stock universe change together](docs/screenshots/market-switch.gif)
-
-*The pause is real: switching markets triggers a fresh purged walk-forward
-validation on the new series rather than reusing anything from the previous one.*
+![The dashboard: market and model selection, and the prediction verdict](docs/screenshots/prediction.png)
 
 **Model evidence** — accuracy is never shown without the baseline beside it, the
 calibration gate withholds probabilities that fail it, and performance is broken
