@@ -60,6 +60,25 @@ html {
   background-color: var(--color-ink-000);
 }
 
+/*
+  Scale the whole interface up on larger displays. Tailwind's text sizes AND
+  spacing are rem-based, so raising the root font-size zooms the entire UI
+  proportionally — text, padding and gaps all grow together — rather than just
+  enlarging fonts and leaving a cramped layout. The default 16px suits laptops;
+  bigger monitors get progressively more so the design stays comfortable to read
+  instead of shrinking into the middle of the screen. The rem-based container
+  max-width (below) widens in step, so the content also fills more of the screen.
+*/
+@media (min-width: 1536px) {
+  html { font-size: 17px; }
+}
+@media (min-width: 1920px) {
+  html { font-size: 18px; }
+}
+@media (min-width: 2560px) {
+  html { font-size: 20px; }
+}
+
 body {
   background-color: var(--color-ink-000);
   color: var(--color-text-primary);

@@ -20,7 +20,7 @@ export function StockHeader({ analysis }: { analysis: AnalysisResponse }) {
 
   return (
     <div className="border-b border-line bg-ink-010">
-      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[110rem] px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
