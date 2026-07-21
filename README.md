@@ -113,7 +113,8 @@ npm install
 npm run dev
 ```
 
-Dashboard at http://localhost:3000
+Landing page at http://localhost:3000, dashboard at
+http://localhost:3000/dashboard
 
 ### API keys
 
@@ -162,7 +163,16 @@ with the evidence behind it.
 
 ## Screenshots
 
-**The prediction verdict** — the default state for most stocks. The model did
+**The landing page** (`/`) — leads with the finding rather than around it.
+Every figure on it is a real measured result, which felt like the minimum bar
+for a page whose argument is that most stock predictors report numbers they
+cannot support.
+
+![Landing page hero: "Most stock predictors are lying to you"](docs/screenshots/landing-hero.png)
+
+![Landing page results table showing no model beat the baseline](docs/screenshots/landing-finding.png)
+
+**The prediction verdict** (`/dashboard`) — the default state for most stocks. The model did
 not beat its baseline, so no directional call is issued, and the panel shows the
 comparison that produced that verdict rather than asking you to take it on trust.
 
@@ -538,7 +548,7 @@ fields render as `DATA UNAVAILABLE`, never as zero.
     │   └── tests/
     └── frontend/
         └── src/
-            ├── app/            dashboard page, design system
+            ├── app/            landing page, dashboard, design system
             ├── components/     controls, prediction, charts, analytics,
             │                   evidence, news
             └── lib/            API client, types, formatting
