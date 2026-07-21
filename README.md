@@ -24,12 +24,11 @@ a news pipeline that keeps text sentiment separate from expected price impact.
 > historical data. They are not guarantees and must never be the sole basis for
 > an investment decision.
 
-> **This repository holds two independent projects.** StockIntel lives in
-> `stockintel/` and is documented here. An earlier Streamlit + TensorFlow
-> price-forecasting system lives at `app.py` / `src/`, still runs, and is
-> documented in
-> [docs/legacy-streamlit-project.md](docs/legacy-streamlit-project.md).
-> See [The other project in this repository](#the-other-project-in-this-repository).
+> **The app lives in `stockintel/`.** An earlier, unrelated Streamlit +
+> TensorFlow LSTM price-forecaster once shared this repository; it now has its
+> own home at
+> [github.com/zhaymn/stock-price-lstm](https://github.com/zhaymn/stock-price-lstm).
+> No code is shared between the two.
 
 ---
 
@@ -47,7 +46,7 @@ a news pipeline that keeps text sentiment separate from expected price impact.
 - [Known limitations](#known-limitations)
 - [Project layout](#project-layout)
 - [Testing](#testing)
-- [The other project in this repository](#the-other-project-in-this-repository)
+- [Origin](#origin)
 - [License](#license)
 
 ---
@@ -536,22 +535,20 @@ fields render as `DATA UNAVAILABLE`, never as zero.
 
 ```
 .
-├── README.md                    this file
-├── docs/
-│   └── legacy-streamlit-project.md    the earlier project's documentation
-│
-├── app.py, src/, theme.py       earlier Streamlit + TensorFlow project
-│
-└── stockintel/                  this project
+├── README.md                   this file
+├── render.yaml                 Render deploy blueprint
+├── docs/                       deploy guide, screenshots
+└── stockintel/
     ├── backend/
     │   ├── app/
-    │   │   ├── api/routes/      markets, analysis, news, meta
+    │   │   ├── api/routes/      markets, analysis, news, macro, meta
     │   │   ├── backtesting/     splits (purge/embargo), metrics, harness
     │   │   ├── core/            config, errors, logging
     │   │   ├── data/
     │   │   │   ├── cache/       SQLite + Parquet TTL store
     │   │   │   ├── market/      providers, prices, calendar
     │   │   │   ├── news/        Marketaux, dedupe, archive, backfill
+    │   │   │   ├── macro/       FRED client
     │   │   │   └── fundamentals/  company profiles
     │   │   ├── features/        technical, sentiment, targets, leakage probe
     │   │   ├── models/          baselines, tabular, lstm, ensemble, selective
@@ -563,7 +560,7 @@ fields render as `DATA UNAVAILABLE`, never as zero.
         └── src/
             ├── app/            landing page, dashboard, design system
             ├── components/     controls, prediction, charts, analytics,
-            │                   evidence, news
+            │                   evidence, news, macro
             └── lib/            API client, types, formatting
 ```
 
@@ -611,29 +608,21 @@ npx tsc --noEmit && npm run lint
 
 ---
 
-## The other project in this repository
+## Origin
 
-This repository also contains an earlier, independent **Streamlit + TensorFlow
-LSTM price-forecasting system**, which remains fully functional and untouched:
+StockIntel began in a workspace it shared with an earlier, independent project:
+a **Streamlit + TensorFlow LSTM price-forecasting system**. The two forecast
+different things — that project predicts *price levels* with deep learning;
+StockIntel predicts *direction* and is built around validating whether such
+forecasts hold up out of sample — and they share no runtime code. It now lives
+in its own repository:
+**[github.com/zhaymn/stock-price-lstm](https://github.com/zhaymn/stock-price-lstm)**.
 
-```bash
-.venv/Scripts/streamlit run app.py
-```
-
-Its code lives at `app.py` and `src/`, and its documentation — architecture,
-the mathematics of LSTM cells, indicator formulas, evaluation metrics — is
-preserved at **[docs/legacy-streamlit-project.md](docs/legacy-streamlit-project.md)**.
-
-The two are deliberately separate. That project forecasts *price levels* with
-deep learning; StockIntel forecasts *direction* and is built around validating
-whether such forecasts hold up out of sample. They use different virtual
-environments and share no runtime code.
-
-StockIntel's market-provider abstraction **is** adapted from that project's
-`src/markets` package, including its verified finding that NSE's own site blocks
-automated requests (HTTP 403 on the homepage, 503 on the equity-list CSV, behind
-a WAF) — which is why Indian listings here are sourced through Yahoo Finance's
-search API rather than NSE directly.
+One piece did carry over: StockIntel's market-provider abstraction is adapted
+from that project's `src/markets` package, including its verified finding that
+NSE's own site blocks automated requests (HTTP 403 on the homepage, 503 on the
+equity-list CSV, behind a WAF) — which is why Indian listings here are sourced
+through Yahoo Finance's search API rather than NSE directly.
 
 ---
 
