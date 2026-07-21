@@ -41,6 +41,7 @@ a news pipeline that keeps text sentiment separate from expected price impact.
 - [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Measured results](#measured-results)
+- [Sentiment pipeline](#sentiment-pipeline)
 - [How honesty is enforced](#how-honesty-is-enforced)
 - [Design decisions](#design-decisions)
 - [Known limitations](#known-limitations)
@@ -311,6 +312,72 @@ every user the worst performer under the most confident-sounding label.
 
 ---
 
+## Sentiment pipeline
+
+Price-derived features are exhausted. News sentiment is the only input class
+that has never been tested, so the machinery to test it exists and is
+tier-agnostic — identical code on the free tier (3 articles/request) and a paid
+one (100), differing only in how much quota a day of history costs.
+
+```
+Marketaux ──> archive (SQLite) ──> FinBERT ──> point-in-time features ──> model
+              persistent            cached      aligned to session closes
+```
+
+| Stage | Module | Notes |
+|---|---|---|
+| Backfill | `data/news/backfill.py` | Day-at-a-time, resumable, quota-bounded |
+| Archive | `data/news/archive.py` | Persistent store for articles and their scores |
+| Scoring | `services/sentiment.py` | FinBERT, cached by content hash |
+| Features | `features/sentiment_features.py` | Point-in-time aggregation |
+
+```bash
+python -m scripts.backfill_news AAPL --days 60 --max-requests 80
+python -m scripts.backfill_news --status
+```
+
+### The timing rule
+
+> The feature vector for session **D** may use **only** articles published at or
+> before **D**'s close.
+
+Easy to state, easy to violate, and violating it silently inflates every
+downstream metric. Two failure modes, both pinned by tests:
+
+- **Naive date joins.** Grouping by calendar date puts an 18:00 article in the
+  same bucket as a 16:00 close — a two-hour peek at the outcome, which on a
+  1-day horizon is a large fraction of the thing being predicted.
+- **Timezone drift.** Article timestamps are UTC; a 16:00 ET close is 20:00
+  *or* 21:00 UTC depending on daylight saving, and 15:30 IST is 10:00 UTC.
+
+So articles are assigned by comparing tz-aware instants derived from each
+market's own conventions. `test_sentiment_features.py` asserts that an article
+one minute after the close lands on the *next* session, and that the same UTC
+instant assigns to different sessions in New York and Mumbai.
+
+Sessions with no news carry a neutral 0.0 score **plus** `has_news_coverage = 0`,
+so a model can distinguish "no news" from "neutral news" rather than conflating
+them.
+
+### Three bugs this found
+
+Worth recording, because all three were invisible to reasoning and only
+appeared when the pipeline ran against the live API:
+
+1. **The API key leaked into logs.** `requests`' `HTTPError` message embeds the
+   full request URL, which carries `api_token=<secret>`. Log files get shared.
+   A test now asserts the key appears in neither the exception nor the progress
+   report.
+2. **Marketaux signals quota exhaustion with HTTP 402, not 429.** The live news
+   endpoint was returning `502 Bad Gateway` to users who had merely used up
+   their daily allowance.
+3. **A 1000× unit mismatch silently dropped every article.** pandas 3 stores
+   these as `datetime64[us]`, so `astype("int64")` yields microseconds while
+   `Timestamp.value` returns nanoseconds. Every article sorted past every
+   session close and vanished — no crash, just an empty feature.
+
+---
+
 ## How honesty is enforced
 
 Not by convention — by tests that fail if a guarantee breaks.
@@ -328,6 +395,9 @@ Not by convention — by tests that fail if a guarantee breaks.
 | Negative competitor news reads bullish | Relationship-based sign inversion | `test_negative_competitor_news_is_bullish_not_bearish` |
 | Impact language stays probabilistic | Assert hedges present, "guaranteed" absent | `test_impact_language_is_probabilistic` |
 | Prompt injection can't flip impact | Hostile headline, assert impact unchanged | `test_hostile_article_text_cannot_flip_the_impact` |
+| News can't be read before publication | Article 1 min after close lands on the *next* session | `test_article_just_after_close_lands_on_the_next_session` |
+| Sentiment features stay causal | Truncate future sessions, assert earlier values unchanged | `test_features_are_causal_under_truncation` |
+| API keys never reach logs | Force a provider error, assert the key is absent | `test_http_error_message_never_contains_the_api_key` |
 | Missing data renders as missing | `null` → em dash, never `0` | Enforced by the `Stat` component |
 
 **The prediction is gated on demonstrated skill.** If a model fails to beat its
@@ -388,19 +458,37 @@ similar-luminance yellows and reds adjacent in charts and destroys readability.
 
 ## Known limitations
 
-**Sentiment is displayed but not validated.** The one genuinely untested
-hypothesis. Marketaux's free tier caps every response at 3 articles with no
-historical backfill:
+**Sentiment is collected and displayed, but not yet validated as a predictive
+feature.** The one genuinely untested hypothesis in the project.
+
+The full pipeline exists — archive, backfill, point-in-time features, coverage
+reporting (see [Sentiment pipeline](#sentiment-pipeline)). What is missing is
+data volume. Marketaux's free tier caps every response at 3 articles:
 
 ```
-found: 33649    returned: 3    limit: 3
+found: 99124    returned: 3    limit: 3
 ```
 
-Validating sentiment as a predictive feature needs daily sentiment across ~2,000
-trading days and several stocks — months of quota at this rate. **No sentiment
-backtest is reported**, because a number produced from one day of articles would
-be fabricated evidence. A news tier with historical backfill would unblock it;
-providers sit behind an interface, so it's a client swap, not a rewrite.
+Historical backfill *does* work: an explicit `published_before` window returns
+real articles from arbitrary past dates. The constraint is throughput, not
+availability. At 3 articles per request and 100 requests/day the ceiling is
+~300 articles/day, where a defensible experiment needs dense coverage across
+~2,000 sessions for several stocks.
+
+A live run against AAPL fetched, archived and scored 71 articles before the
+daily allowance ran out:
+
+```
+AAPL   5/28 sessions (17.9%), 71 articles, 14.2/session, usable=False
+```
+
+`usable=False` is the coverage guard: below 30% of sessions carrying news, a
+sentiment feature is mostly its own missing-data indicator — the model learns
+"was there news today", not "what did the news say".
+
+**No sentiment backtest is reported**, because a number produced from 71
+articles would be fabricated evidence. A paid tier (100 articles/request) runs
+the same code unchanged and collects a year of history in roughly an hour.
 
 **Aggregate sentiment is thin.** With 3 articles per section, a single story can
 dominate. Aggregates are labelled `ADEQUATE` / `THIN` / `INSUFFICIENT` and the
@@ -440,9 +528,9 @@ fields render as `DATA UNAVAILABLE`, never as zero.
     │   │   ├── data/
     │   │   │   ├── cache/       SQLite + Parquet TTL store
     │   │   │   ├── market/      providers, prices, calendar
-    │   │   │   ├── news/        Marketaux, deduplication
+    │   │   │   ├── news/        Marketaux, dedupe, archive, backfill
     │   │   │   └── fundamentals/  company profiles
-    │   │   ├── features/        technical, targets, leakage probe
+    │   │   ├── features/        technical, sentiment, targets, leakage probe
     │   │   ├── models/          baselines, tabular, lstm, ensemble, selective
     │   │   └── services/        analytics, prediction, sentiment,
     │   │                        event relevance, llm
@@ -456,7 +544,7 @@ fields render as `DATA UNAVAILABLE`, never as zero.
             └── lib/            API client, types, formatting
 ```
 
-37 backend modules (~6,200 lines), 14 frontend files (~3,000 lines).
+40 backend modules (~6,900 lines), 14 frontend files (~3,000 lines).
 
 ---
 
@@ -464,7 +552,7 @@ fields render as `DATA UNAVAILABLE`, never as zero.
 
 ```bash
 cd stockintel/backend
-.venv/Scripts/python -m pytest                        # 94 tests
+.venv/Scripts/python -m pytest                        # 121 tests
 .venv/Scripts/python -m pytest --ignore=tests/test_lstm.py    # skip the slow ones
 
 RUN_LIVE_LLM_TESTS=1 .venv/Scripts/python -m pytest tests/test_llm_classification.py
@@ -482,6 +570,13 @@ Reproduce the experiments:
 .venv/Scripts/python -m scripts.test_horizons      # horizons + abstention
 .venv/Scripts/python -m scripts.compare_lstm       # LSTM head-to-head
 .venv/Scripts/python -m scripts.compare_final      # ensemble head-to-head
+```
+
+Collect news for the sentiment experiment (requires `MARKETAUX_API_KEY`):
+
+```bash
+.venv/Scripts/python -m scripts.backfill_news AAPL --days 60 --max-requests 80
+.venv/Scripts/python -m scripts.backfill_news --status
 ```
 
 Frontend:
