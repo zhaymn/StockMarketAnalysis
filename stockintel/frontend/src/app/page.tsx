@@ -90,7 +90,7 @@ function Nav() {
         </div>
         <div className="flex items-center gap-6">
           <a
-            href="https://github.com/zhaymn/StockMarketAnalysis"
+            href="https://github.com/zhaymn/StockIntel"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden text-sm text-text-secondary transition-colors hover:text-text-primary sm:block"
@@ -145,7 +145,7 @@ function Hero() {
             Open the dashboard
           </Link>
           <a
-            href="https://github.com/zhaymn/StockMarketAnalysis#measured-results"
+            href="https://github.com/zhaymn/StockIntel#measured-results"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg border border-line-strong px-6 py-3 text-sm font-semibold text-text-primary transition-colors hover:border-lime hover:text-lime"
@@ -492,7 +492,7 @@ function ClosingCta() {
             Open the dashboard
           </Link>
           <a
-            href="https://github.com/zhaymn/StockMarketAnalysis"
+            href="https://github.com/zhaymn/StockIntel"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg border border-line-strong px-6 py-3 text-sm font-semibold text-text-primary transition-colors hover:border-lime hover:text-lime"
@@ -520,12 +520,12 @@ function Footer() {
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-8">
           <span className="text-xs text-text-faint">MIT licensed</span>
           <a
-            href="https://github.com/zhaymn/StockMarketAnalysis"
+            href="https://github.com/zhaymn/StockIntel"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-text-muted transition-colors hover:text-lime"
           >
-            github.com/zhaymn/StockMarketAnalysis
+            github.com/zhaymn/StockIntel
           </a>
         </div>
       </div>
