@@ -84,10 +84,15 @@ class MarketauxProvider(NewsProvider):
         except requests.RequestException as exc:
             raise ProviderError("Could not reach the news provider.", detail=str(exc)) from exc
 
-        if response.status_code == 429:
+        # Marketaux reports an exhausted plan allowance as 402, not 429.
+        # Without the 402 branch this surfaced as a generic provider error and
+        # the UI showed "502 Bad Gateway" to a user who had simply used up
+        # their daily quota.
+        if response.status_code in (402, 429):
             raise RateLimitedError(
-                "News provider rate limit reached (Marketaux free tier allows "
-                "100 requests/day).",
+                "News provider allowance exhausted "
+                f"(HTTP {response.status_code}). The Marketaux free tier allows "
+                "100 requests/day; it resets daily.",
                 retry_after=3600,
             )
         if response.status_code in (401, 403):
