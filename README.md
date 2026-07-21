@@ -1,469 +1,466 @@
-# Stock Price Prediction System
+# StockIntel
 
-A production-structured deep learning system for forecasting stock closing prices from
-historical market data, built with stacked LSTM networks (plus GRU, Bidirectional LSTM,
-CNN-LSTM, and Attention-LSTM variants). Includes a full data pipeline, five interchangeable
-model architectures, a rigorous evaluation suite (with a naive-baseline sanity check), and an
-interactive Streamlit dashboard for training, evaluating, and forecasting on any ticker.
+An AI stock-market prediction and intelligence platform for US and Indian
+equities, built to answer a question honestly rather than to look confident:
 
-> **Disclaimer:** This project is for educational and portfolio purposes only. It is **not**
-> financial advice, and its predictions should never be used as the sole basis for a real
-> trading or investment decision. Stock prices are influenced by far more than their own
-> price history — news, macroeconomics, and market sentiment are not modeled here.
+> **Can machine learning predict short-term equity direction from price data?**
+
+On this data, with leakage properly controlled: **no.** Four model families
+across two markets, four horizons and ~10 years of history fail to beat a naive
+baseline out of sample. The platform reports that in the UI instead of hiding
+it, and the interesting engineering is in *how it establishes* that finding —
+purged walk-forward validation, a calibration gate, an abstention mechanism, and
+a news pipeline that keeps text sentiment separate from expected price impact.
+
+> **Not financial advice.** Predictions are statistical estimates from
+> historical data. They are not guarantees and must never be the sole basis for
+> an investment decision.
+
+> **This repository holds two independent projects.** StockIntel lives in
+> `stockintel/` and is documented here. An earlier Streamlit + TensorFlow
+> price-forecasting system lives at `app.py` / `src/`, still runs, and is
+> documented in
+> [docs/legacy-streamlit-project.md](docs/legacy-streamlit-project.md).
+> See [The other project in this repository](#the-other-project-in-this-repository).
 
 ---
 
-## Table of Contents
+## Contents
 
-- [Key Features](#key-features)
-- [Markets & Stock Selection](#markets--stock-selection)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Usage](#usage)
+- [The headline result](#the-headline-result)
+- [Quick start](#quick-start)
+- [What it does](#what-it-does)
 - [Architecture](#architecture)
-- [Mathematical Background: How LSTM Works](#mathematical-background-how-lstm-works)
-- [Technical Indicators](#technical-indicators)
-- [Evaluation Metrics](#evaluation-metrics)
-- [Design Notes & Known Limitations](#design-notes--known-limitations)
-- [Screenshots](#screenshots)
-- [Deployment (Streamlit Community Cloud)](#deployment-streamlit-community-cloud)
-- [Future Improvements](#future-improvements)
+- [Measured results](#measured-results)
+- [How honesty is enforced](#how-honesty-is-enforced)
+- [Design decisions](#design-decisions)
+- [Known limitations](#known-limitations)
+- [Project layout](#project-layout)
+- [Testing](#testing)
+- [The other project in this repository](#the-other-project-in-this-repository)
 
 ---
 
-## Key Features
+## The headline result
 
-- **Two markets, dynamically loaded stock directories** — choose Indian or International
-  equities from the sidebar, then search or browse a live-sourced list of real companies
-  (not a hardcoded ticker list) — see [Markets & Stock Selection](#markets--stock-selection).
-- **Leakage-free data pipeline** — chronological train/test splitting, scalers fit only on the
-  training split, sliding-window sequence generation.
-- **15 engineered technical-indicator features** — SMA, EMA, RSI, MACD, Bollinger Bands, OBV
-  — computed from scratch with documented formulas (see [Technical Indicators](#technical-indicators)).
-- **Five interchangeable architectures** — Stacked LSTM, Stacked GRU, Bidirectional LSTM,
-  CNN-LSTM hybrid, and LSTM with a custom additive-attention pooling layer.
-- **Full training pipeline** — EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard,
-  CSV epoch logging, all wired through a Streamlit progress bar during interactive training.
-- **Rigorous evaluation** — MAE, MSE, RMSE, MAPE, R², and Directional Accuracy, each with a
-  plain-English explanation, plus a comparison against a naive "predict no change" baseline
-  (stock prices are close to a random walk — beating that baseline is the real bar to clear).
-- **Recursive multi-day forecasting** — a user-defined horizon, with the approximation it
-  relies on clearly documented (see [Design Notes](#design-notes--known-limitations)).
-- **Interactive Streamlit dashboard** — candlestick/line charts with indicator overlays,
-  training curves, actual-vs-predicted plots, residual analysis, error histograms, forecast
-  overlays, a 5-architecture comparison tool, and CSV export throughout.
+Every model was evaluated under an identical purged walk-forward protocol.
+`skill` is `(accuracy − baseline) / (1 − baseline)`: zero means no better than
+always guessing the majority class, negative means worse.
 
-## Markets & Stock Selection
+**Five stocks × two horizons (10 configurations):**
 
-The dashboard's sidebar workflow is: **pick a market → search or browse for a stock → fetch
-data for that one stock**. Every downstream step (preprocessing, training, evaluation,
-forecasting) then operates on exactly that ticker — a prediction is always for one company,
-trained only on its own history, never mixed with any other company's data.
+| Model | Mean accuracy | Mean skill | Beat baseline |
+|---|---|---|---|
+| **LightGBM** | 0.3836 | **−0.0496** | **1/10** |
+| Majority baseline | 0.3854 | −0.0459 | 0/10 |
+| Logistic Regression | 0.3653 | −0.0802 | 0/10 |
+| Stacked ensemble | 0.3383 | −0.1296 | 0/10 |
 
-### Indian Market
+**Four stocks × two horizons, including the LSTM (8 configurations):**
 
-NSE's own site (`nseindia.com`, `archives.nseindia.com`) blocks automated requests outright —
-verified directly during development: HTTP 403 on the homepage and HTTP 503 on the official
-equity-list CSV, even with a realistic browser User-Agent and a cookie-priming request first.
-This is NSE's WAF/anti-bot protection, a widely reported real-world limitation of scripted NSE
-access, not something fixable from application code (and it affects any server making the
-request, not just this specific environment).
+| Model | Mean skill | Beat baseline | Mean fit time |
+|---|---|---|---|
+| Majority baseline | −0.0381 | 0/8 | 0.1s |
+| LightGBM | −0.0598 | 0/8 | 5.3s |
+| Logistic Regression | −0.0830 | 0/8 | 0.4s |
+| LSTM | −0.1086 | 0/8 | 32.1s |
 
-So the Indian provider (`src/markets/indian_market.py`) is built entirely on **Yahoo Finance's
-live search API**, which does correctly index NSE-listed (and BSE-listed) equities:
+Across 40 model-runs the single positive result is MSFT 5-day LightGBM at
+**+0.0024** skill — 0.2 percentage points, indistinguishable from noise.
 
-- **Search** — type a company name or symbol; results come back live, filtered to NSE (`NSI`)
-  and BSE exchange codes.
-- **Starter directory** — a list of ~35 well-known large-cap NSE stocks shown before you type
-  anything, built by querying that same live API for well-known company names (concurrently,
-  cached for a day) — not a static ticker list baked into source.
+**These unimpressive numbers are the evidence that the leakage controls work.**
+Published daily-direction accuracies of 70–90% are almost always look-ahead
+bias. If the purge/embargo here were broken, this table would show 65%+ and it
+would be fiction.
 
-### International Market
+Raw reports are in `backend/.artifacts/*.json`.
 
-Unlike NSE, **NASDAQ Trader's symbol directory files are reliably scriptable** without
-authentication (`nasdaqlisted.txt` and `otherlisted.txt`, verified working) — so the
-International provider (`src/markets/international_market.py`) fetches the *entire* current
-NASDAQ + NYSE/NYSE American/NYSE Arca listing (~7,000+ real companies) live on first load,
-cached for a day. Live Yahoo Finance search is layered on top for anything outside that file
-(newly listed symbols, etc.).
+---
 
-### Adding a new market
+## Quick start
 
-Adding London, Tokyo, Hong Kong, crypto, ETFs, mutual funds, or commodities as a future market
-is two steps, and touches nothing else in the app:
+**Requirements:** Python 3.13, Node 20.9+.
 
-1. Implement a `MarketProvider` subclass in `src/markets/` (see `src/markets/base.py`) with a
-   `search()` method and, if a reliable bulk source exists, a `list_directory()` override.
-2. Add one line to `MARKET_REGISTRY` in `src/markets/registry.py`.
-
-The prediction pipeline (`src.preprocessing` → `src.dataset` → `src.model` → `src.train` →
-`src.evaluate` → `src.predict`) never changes — it only ever consumes a plain yfinance-ready
-ticker string, regardless of which provider produced it.
-
-## Tech Stack
-
-| Purpose | Library |
-|---|---|
-| Deep learning | TensorFlow / Keras 3 |
-| Data handling | Pandas, NumPy |
-| ML utilities (scaling, metrics) | scikit-learn |
-| Market data | yfinance, Yahoo Finance search API, NASDAQ Trader symbol directory |
-| HTTP requests | requests |
-| Charting | Plotly (interactive), Matplotlib |
-| Dashboard | Streamlit |
-| Model/scaler persistence | Keras native `.keras` format, joblib |
-| Language | Python 3.12+ |
-
-## Project Structure
-
-```
-stock-price-predictor/
-├── data/                    # Cached raw & processed CSVs (gitignored, regenerated on demand)
-├── notebooks/                # Scratch space for exploration
-├── models/                  # Trained models, scalers, metadata, history (gitignored)
-├── logs/                    # App logs + TensorBoard event files (gitignored)
-├── src/
-│   ├── markets/
-│   │   ├── base.py            # StockResult + MarketProvider abstraction
-│   │   ├── yahoo_search.py    # Shared live Yahoo Finance search helper
-│   │   ├── indian_market.py   # NSE/BSE provider (live search + starter directory)
-│   │   ├── international_market.py  # NASDAQ/NYSE provider (bulk directory + search)
-│   │   └── registry.py        # MARKET_REGISTRY -- add a market in two lines
-│   ├── utils.py              # Paths, logging, exceptions, seeding, date/ticker helpers
-│   ├── preprocessing.py      # yfinance download, missing-value handling, technical indicators
-│   ├── dataset.py            # Scaling, sliding-window sequences, leakage-free train/test split
-│   ├── model.py               # LSTM/GRU/BiLSTM/CNN-LSTM/Attention architectures
-│   ├── train.py               # Training loop, callbacks, artifact persistence
-│   ├── evaluate.py            # MAE/MSE/RMSE/MAPE/R²/Directional Accuracy + explanations
-│   └── predict.py             # Next-day prediction, recursive multi-day forecasting
-├── app.py                     # Streamlit dashboard (the main entry point)
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
-
-`model.keras`, `model_scalers.joblib`, and `model_metadata.json` appear at the project root
-once you train a model through the dashboard — that's the app's "default" model, used
-whenever no specific ticker/architecture is selected for loading.
-
-## Installation
-
-**Prerequisites:** Python 3.12+ and `pip`.
+### Backend
 
 ```bash
-# 1. Clone the repository
-git clone <your-repo-url> stock-price-predictor
-cd stock-price-predictor
-
-# 2. Create and activate a virtual environment
+cd stockintel/backend
 python -m venv .venv
+.venv/Scripts/pip install -r requirements.txt      # macOS/Linux: .venv/bin/pip
 
-# Windows:
-.venv\Scripts\activate
-# macOS / Linux:
-source .venv/bin/activate
-
-# 3. Install dependencies
-pip install --upgrade pip
-pip install -r requirements.txt
+cp .env.example .env                               # then add your keys
+.venv/Scripts/python -m uvicorn app.main:app --port 8000
 ```
 
-This installs TensorFlow, Streamlit, Plotly, scikit-learn, yfinance, and the rest of the
-stack. On first run, TensorFlow prints a one-time warning that GPU support isn't available on
-native Windows for TensorFlow >= 2.11 — this is expected; the project runs entirely on CPU
-without issue for the model sizes involved here (use WSL2 or Linux/macOS if you want GPU
-acceleration for larger architectures).
+API docs at http://localhost:8000/docs
 
-## Usage
-
-### Running the dashboard (recommended)
+### Frontend
 
 ```bash
-streamlit run app.py
+cd stockintel/frontend
+npm install
+npm run dev
 ```
 
-This opens the dashboard in your browser (default `http://localhost:8501`). Workflow:
+Dashboard at http://localhost:3000
 
-1. **Sidebar** — pick a market (Indian or International), search for a company by name or
-   symbol (or browse the default starter/bulk list), pick a history length and architecture,
-   and hit **Fetch & Prepare Data**. A manual ticker-entry override is also available if you
-   already know the exact symbol.
-2. **Overview tab** — explore the price chart (candlestick or line), toggle SMA/EMA/Bollinger
-   overlays, and inspect the RSI/MACD sub-charts.
-3. **Train tab** — click **Train Model**. Watch live epoch progress, then review the
-   training-vs-validation loss curve.
-4. **Evaluate tab** — see MAE/RMSE/MAPE/R²/Directional Accuracy (hover each for an
-   explanation), compared against a naive baseline, plus actual-vs-predicted, residual, and
-   error-histogram charts.
-5. **Forecast tab** — pick a horizon (1–90 trading days) and generate a recursive forecast
-   overlaid on recent history.
-6. **Compare Architectures tab** — train all five architectures on the same data and compare
-   test-set error side by side.
+### API keys
 
-Every chart's underlying data can be exported as CSV from the dashboard.
+The application **runs fully without any keys.** Market data and sentiment need
+none. Anything unconfigured renders an explicit `NOT CONFIGURED` state with
+setup instructions — never fabricated data.
 
-### Using the pipeline programmatically
+| Service | Env var | Needed for | Free tier | Obtain |
+|---|---|---|---|---|
+| Marketaux | `MARKETAUX_API_KEY` | News, sentiment, event impact | 100 req/day | [marketaux.com](https://www.marketaux.com/) |
+| FRED | `FRED_API_KEY` | Macro series | Free | [fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html) |
+| Gemini | `GEMINI_API_KEY` | Event classification (optional) | Yes | [aistudio.google.com](https://aistudio.google.com/apikey) |
 
-```python
-from src.preprocessing import load_and_prepare_data
-from src.dataset import prepare_dataset
-from src.model import build_lstm_model
-from src.train import train_and_save, TrainingConfig
-from src.predict import forecast, load_model_bundle
+Secrets belong in `.env`, which is gitignored. `.env.example` is committed and
+must only ever hold empty placeholders.
 
-# 1. Fetch + engineer features for a ticker
-df = load_and_prepare_data("AAPL", years=5)
+`GEMINI_MODEL` optionally pins a model — Google retires models for new projects
+without notice (`gemini-2.5-flash` returned HTTP 404 *"no longer available to
+new users"* during development).
 
-# 2. Scale + window into train/test sequences
-dataset = prepare_dataset(df, window_size=60, test_size=0.2)
+---
 
-# 3. Build and train a model
-model = build_lstm_model((dataset.window_size, dataset.n_features))
-result = train_and_save(
-    "AAPL", model, dataset, model_name="lstm",
-    config=TrainingConfig(epochs=100),
-)
+## What it does
 
-# 4. Forecast the next 14 trading days using the saved model
-bundle = load_model_bundle("AAPL", "lstm")
-forecast_df = forecast(df, bundle, horizon=14)
-print(forecast_df)
-```
+Select a market → search a stock → pick a model and horizon → get a prediction
+with the evidence behind it.
 
-### Looking up a ticker programmatically
+- **Two markets** with fully separated conventions: currency, benchmark
+  (S&P 500 / NIFTY 50), exchange timezone and trading-day count for
+  annualisation. Currencies never mix.
+- **Four prediction horizons** — 1 day (binary), and 5/10/20-day three-class
+  outlooks.
+- **Four model modes** — Most Possible Prediction (the best measured pipeline),
+  Stacked Ensemble, LightGBM, LSTM, Logistic Regression.
+- **34 technical features** across five groups, all scale-free and stationary.
+- **Full analytics** — returns, volatility regime, momentum, volume, drawdown,
+  beta, benchmark comparison, fundamentals.
+- **Interactive charts** — candlesticks with moving averages and volume, RSI,
+  MACD, rolling volatility.
+- **Model evidence** — walk-forward accuracy against baseline, calibration,
+  per-regime breakdown, feature importance.
+- **News & current affairs** — company, sector and macro news with FinBERT
+  sentiment, LLM event classification and per-article impact analysis.
 
-```python
-from src.markets.registry import MARKET_REGISTRY
-
-indian = MARKET_REGISTRY["indian"]
-for result in indian.search("Bharti Airtel", limit=3):
-    print(result.label(), "|", result.exchange)
-# BHARTI AIRTEL LIMITED (BHARTIARTL.NS) | NSE
-# BHARTI AIRTEL LTD. (BHARTIARTL.BO) | Bombay
-# ...
-
-international = MARKET_REGISTRY["international"]
-apple = international.search("Apple", limit=1)[0]
-print(apple.symbol)  # "AAPL" -- feed this straight into load_and_prepare_data()
-```
-
-### TensorBoard
-
-Training writes event files to `logs/tensorboard/`. To inspect a run:
-
-```bash
-tensorboard --logdir logs/tensorboard
-```
+---
 
 ## Architecture
 
-**Pipeline:** `preprocessing.py` (download + clean + engineer features) → `dataset.py`
-(scale + window into sequences, chronological split) → `model.py` (build architecture) →
-`train.py` (fit with callbacks, persist artifacts) → `evaluate.py` (score against the held-out
-test set) → `predict.py` (forecast forward using the trained model).
-
-**Primary architecture — Stacked LSTM:**
-
 ```
-Input (window_size, n_features)
-   │
-   ├─ LSTM(128, return_sequences=True) → Dropout(0.2)
-   ├─ LSTM(64,  return_sequences=True) → Dropout(0.2)
-   ├─ LSTM(32,  return_sequences=False) → Dropout(0.2)
-   │
-   ├─ Dense(25, activation="relu") → Dropout(0.1)
-   └─ Dense(1, activation="linear")   # predicted next-day Close
+Frontend  Next.js 16 · React 19 · Tailwind 4 · lightweight-charts 5
+              │  REST
+Backend   FastAPI · Python 3.13
+              ├── data/      market (yfinance), news (Marketaux), fundamentals
+              ├── features/  technical indicators, targets, leakage probe
+              ├── models/    baselines, tabular, LSTM, ensemble, selective
+              ├── backtesting/  purged walk-forward, metrics, calibration
+              └── services/  analytics, prediction, sentiment, event relevance, LLM
+Storage   SQLite (JSON cache) + Parquet (OHLCV frames)
+ML        scikit-learn · LightGBM · PyTorch
+NLP       FinBERT (local) · Gemini (event classification)
 ```
 
-Compiled with the **Adam** optimizer and **MSE** loss (MAE tracked as an additional metric).
+**PyTorch, not TensorFlow** — FinBERT runs on torch, so one framework serves
+both the LSTM and the NLP model instead of a ~5 GB dual install.
 
-**Architecture variants** (all built from one configurable factory in `src/model.py`, so they
-share a single code path rather than duplicating layer-stacking logic):
+**SQLite + Parquet, not Postgres/Redis** — no infrastructure that isn't earned.
+Different data ages differently, so TTLs differ: quotes 60s, bars 1h, news
+15min, fundamentals 1 day, sentiment 7 days keyed by content hash.
 
-| Variant | What changes |
-|---|---|
-| Stacked GRU | LSTM cells → GRU cells (fewer parameters, often comparable accuracy) |
-| Bidirectional LSTM | Each recurrent layer reads the window forwards *and* backwards |
-| CNN-LSTM Hybrid | A `Conv1D` + `MaxPooling1D` block extracts local patterns before the LSTM stack |
-| LSTM + Attention | A custom Bahdanau-style additive-attention layer replaces "just use the last timestep" with a learned weighted sum over the whole window |
+---
 
-## Mathematical Background: How LSTM Works
+## Measured results
 
-A vanilla RNN updates a single hidden state `h_t = tanh(W_h·h_{t-1} + W_x·x_t + b)` at every
-timestep. Backpropagating an error signal through many timesteps means repeatedly multiplying
-by the same weight matrix, which causes gradients to either vanish toward zero or explode —
-in practice, vanilla RNNs struggle to learn dependencies more than a few steps back, which is
-a real problem for a 60-day price window.
+### Prediction targets
 
-**LSTM (Long Short-Term Memory)** solves this by adding a separate **cell state** `C_t` that
-information can flow along almost unchanged, protected by three learned *gates* that decide
-what to forget, what to add, and what to output. At each timestep `t`, given the previous
-hidden state `h_{t-1}`, previous cell state `C_{t-1}`, and current input `x_t`:
+A next-day price regressor trained on a near-random-walk series learns to echo
+today's close, scores a flattering R², and predicts nothing. So targets are
+directional:
 
-**1. Forget gate** — how much of the old cell state to keep:
+- **1-day** — binary up/down.
+- **5/10/20-day** — three-class, with the neutral band scaled by realised
+  volatility: `BULLISH` if `r > +0.5σ_h`, `BEARISH` if `r < −0.5σ_h`.
+
+The σ-scaling is what makes `NEUTRAL` learnable. Measured class balance:
+
+| Stock | BEARISH | NEUTRAL | BULLISH |
+|---|---|---|---|
+| AAPL | 0.275 | 0.363 | 0.362 |
+| RELIANCE.NS | 0.294 | 0.393 | 0.313 |
+| TCS.NS | 0.307 | 0.396 | 0.297 |
+
+A fixed ±2% band would have produced a degenerate class on one market or the
+other.
+
+### There is signal — it just doesn't survive a decision threshold
+
+ROC-AUC lands at **0.52–0.59** in essentially every ML configuration, never
+0.50, and MCC is positive in most. That combination means real *ranking* signal
+destroyed by the argmax threshold on a ~53/47 class split.
+
+Two attempts to exploit it, both failing honestly:
+
+1. **Longer horizons** improved AUC (up to 0.588 at 20 days) but not accuracy.
+2. **Selective prediction** (abstention) — risk-coverage curves slope downward
+   in **25/36** configurations (mean slope −0.055), confirming confidence is
+   informative. But the threshold does not transfer out of sample.
+
+The reason abstention fails is worth stating, because it is the difference
+between an honest platform and a flattering one. Abstaining preferentially
+answers where one class already dominates, which **raises the bar** it must
+clear:
 
 ```
-f_t = σ(W_f · [h_{t-1}, x_t] + b_f)
+overall baseline          0.4122
+answered-subset baseline  0.4293    (higher in 25/36 configs, +0.017 mean)
 ```
 
-**2. Input gate** — how much new information to write, and what that new information is:
+Scored against the *full-period* baseline the model appears to win 17/36. Scored
+against the *answered-subset* baseline — the correct comparison — it wins 11/36.
+`SelectiveReport.baseline_accuracy` always uses the subset, and a test pins it.
+
+### Deep learning did not help
+
+The LSTM finished **last** — behind gradient boosting, a linear model, and the
+naive baseline — at 6× LightGBM's training cost. Its AUC is competitive
+(0.481–0.593, including the highest single AUC in the run) but its decisions are
+worse.
+
+A control test confirms this is absence of signal rather than a broken pipeline:
+on synthetic data where the label genuinely *is* the previous row's feature sign,
+the same model reaches **>75%**.
+
+### Stacking made things worse
+
+The ensemble lost to its own best component in every configuration and degraded
+ROC-AUC in **10 of 10**:
 
 ```
-i_t = σ(W_i · [h_{t-1}, x_t] + b_i)
-C̃_t = tanh(W_C · [h_{t-1}, x_t] + b_C)
+AAPL 5d      0.528 → 0.500      MSFT 5d       0.568 → 0.553
+AAPL 20d     0.531 → 0.508      MSFT 20d      0.567 → 0.562
+NVDA 5d      0.528 → 0.509      RELIANCE 5d   0.532 → 0.509
+NVDA 20d     0.490 → 0.467      RELIANCE 20d  0.568 → 0.560
+TCS 5d       0.526 → 0.515      TCS 20d       0.574 → 0.524
 ```
 
-**3. Cell state update** — combine the two: forget part of the old state, add part of the new
-candidate:
+Weak base models produce noisy out-of-fold predictions; the meta-learner fits
+that noise. The stack is not broken — its learned weights are genuine and vary
+per configuration (0.75/0.25 to 0.39/0.61) — the method is simply wrong for this
+data.
 
-```
-C_t = f_t ⊙ C_{t-1} + i_t ⊙ C̃_t
-```
+**"Most Possible Prediction" therefore resolves to LightGBM, not the ensemble.**
+Defaulting to the stack because ensembles are conventionally stronger would hand
+every user the worst performer under the most confident-sounding label.
 
-**4. Output gate** — how much of the (squashed) cell state becomes this timestep's hidden state:
+---
 
-```
-o_t = σ(W_o · [h_{t-1}, x_t] + b_o)
-h_t = o_t ⊙ tanh(C_t)
-```
+## How honesty is enforced
 
-Where `σ` is the sigmoid function (squashes gate values to `[0, 1]`, acting as a soft
-on/off switch), `tanh` squashes candidate values to `[-1, 1]`, `⊙` is elementwise
-multiplication, and `[h_{t-1}, x_t]` denotes concatenation. Every `W` and `b` is learned
-during training via backpropagation-through-time.
+Not by convention — by tests that fail if a guarantee breaks.
 
-Because the forget/input gates are *additive* updates to `C_t` rather than repeated
-matrix multiplications, gradients can flow back through many timesteps largely
-unimpeded — this is what lets an LSTM (unlike a vanilla RNN) actually learn from a
-60-day window of price history instead of effectively only "seeing" the last few days.
-
-**In this project:** each `LSTM(units, return_sequences=True)` layer applies the above
-recurrence at every one of the `window_size` timesteps and passes the full sequence of
-`h_t` vectors to the next layer; the final `LSTM(units, return_sequences=False)` layer
-(or the attention-pooling layer, in the Attention variant) collapses that sequence down
-to a single vector, which the dense head maps to one predicted price. **GRU** (used in
-the Stacked GRU variant) is a related, slightly simplified gating scheme that merges the
-forget and input gates into a single "update gate" and drops the separate cell state —
-fewer parameters, similar intuition.
-
-## Technical Indicators
-
-All computed in `src/preprocessing.py` from OHLCV data only, using strictly past-and-current
-values (rolling/exponential windows) so no future information leaks into any row's features.
-
-| Indicator | Formula | What it captures |
+| Guarantee | Mechanism | Test |
 |---|---|---|
-| **SMA** (Simple Moving Average) | `mean(Close[t-w+1..t])` | Smoothed trend over `w` days |
-| **EMA** (Exponential Moving Average) | `α·Close_t + (1-α)·EMA_{t-1}`, `α = 2/(w+1)` | Trend, weighted toward recent prices |
-| **RSI** (Relative Strength Index, Wilder's smoothing) | `100 - 100/(1 + avg_gain/avg_loss)` | Momentum; overbought (>70) / oversold (<30) |
-| **MACD** | `EMA_12(Close) - EMA_26(Close)`, plus a 9-day EMA "signal" line | Trend-following momentum, and where it's shifting |
-| **Bollinger Bands** | `SMA_20 ± 2·rolling_std_20` | Volatility envelope around the trend |
-| **OBV** (On-Balance Volume) | Cumulative signed volume (add on up days, subtract on down days) | Whether volume is confirming the price trend |
+| No look-ahead in features | Truncate the series, recompute, assert values at `t` are unchanged | `test_features_have_no_lookahead` |
+| No label overlap across splits | Purge + embargo sized to the horizon | `test_train_never_overlaps_test_label_window` |
+| Accuracy never shown without its baseline | `skill_score` computed everywhere | `test_skill_score_is_zero_for_majority_guessing` |
+| Probabilities only if calibrated | Brier-skill gate; withheld otherwise | `test_uncalibrated_probabilities_are_rejected` |
+| Abstention scored against the right bar | Subset baseline, not full-period | `test_baseline_is_computed_on_the_answered_subset_not_the_full_period` |
+| Stacking trained on out-of-fold data | Nested purged inner walk-forward | `test_meta_learner_trains_on_out_of_fold_predictions_only` |
+| LSTM windows are causal | Assert `window.max() <= i` | `test_window_contains_only_past_and_present` |
+| Scalers fitted on training rows only | Assert fitted mean ≠ full-series mean | `test_scaler_is_fitted_on_training_rows_only` |
+| Negative competitor news reads bullish | Relationship-based sign inversion | `test_negative_competitor_news_is_bullish_not_bearish` |
+| Impact language stays probabilistic | Assert hedges present, "guaranteed" absent | `test_impact_language_is_probabilistic` |
+| Prompt injection can't flip impact | Hostile headline, assert impact unchanged | `test_hostile_article_text_cannot_flip_the_impact` |
+| Missing data renders as missing | `null` → em dash, never `0` | Enforced by the `Stat` component |
 
-## Evaluation Metrics
+**The prediction is gated on demonstrated skill.** If a model fails to beat its
+baseline consistently, the API returns `NO_EDGE` and the dashboard shows the
+accuracy-vs-baseline comparison that produced the verdict — not a directional
+call. Given the results above, this is the *common* case, so it is designed as a
+first-class state rather than an error.
 
-Computed in `src/evaluate.py` on the chronologically held-out test set (never seen during
-training), after inverse-transforming predictions back to raw price scale.
+---
 
-| Metric | Meaning |
-|---|---|
-| **MAE** | Average absolute error, in the stock's own currency — "the model is off by about $X on a typical day." |
-| **MSE** | Average squared error — penalizes large misses disproportionately; units are squared currency. |
-| **RMSE** | `sqrt(MSE)`, back in raw currency units — RMSE noticeably larger than MAE signals a few large misses rather than uniform small error. |
-| **MAPE** | Average error as a percentage of actual price — scale-independent, useful across tickers at very different price levels. |
-| **R²** | Fraction of price variance the model explains; 1.0 is perfect, 0.0 matches "always predict the mean," negative is worse than that. |
-| **Directional Accuracy** | % of days the model correctly predicted whether price would rise or fall vs. the previous actual close — often matters more than raw error for trading decisions. |
+## Design decisions
 
-The dashboard also reports a **naive "predict no change" baseline** alongside every model's
-metrics. Stock prices are close to a random walk, so a model needs to beat this trivial
-baseline's RMSE to be adding real value — not just track yesterday's price. (Note: this
-baseline's Directional Accuracy is mathematically always 0%, since "predict no change" never
-commits to a direction — that's expected, not a sign the baseline is broken.)
+**Volatility-scaled neutral band.** A fixed threshold means different things for
+a utility and a small-cap, and across calm and panicked regimes. Scaling by the
+stock's own realised volatility makes `NEUTRAL` mean "moved less than this stock
+normally moves".
 
-## Design Notes & Known Limitations
+**Scale-free features.** Indicators are emitted as normalised derivatives —
+distance-from-MA rather than the MA level, %B rather than raw bands. A raw
+SMA-200 of 1800 tells a model about Reliance's price scale, not its trend.
 
-- **Recursive forecasting is an approximation.** Beyond day 1, the model only ever predicts
-  `Close`. Each recursive step approximates that day's Open/High/Low/Adj Close as equal to
-  the predicted Close (a "flat bar") and Volume as the trailing 20-day average, then
-  re-derives all technical indicators from that synthetic history before predicting the next
-  step. This is a standard simplification in multi-step stock forecasting, but it means
-  uncertainty compounds with horizon length — treat day 1 of a forecast as far more reliable
-  than day 30.
-- **No leakage, by construction.** Scalers are fit only on the training split; the
-  chronological split never lets a test-period row influence a train-period prediction; the
-  validation split Keras uses during training is the trailing slice of the *training* data
-  only, never the test set.
-- **This is a single-asset, price-history-only model.** It has no access to news, earnings,
-  macroeconomic data, or broader market sentiment — all real drivers of price that this model
-  cannot see.
-- **The Indian stock directory is not NSE's complete official list.** NSE blocks automated
-  access to its own bulk equity list (see [Markets & Stock Selection](#markets--stock-selection)
-  for the verified details), so Indian coverage relies on live Yahoo Finance search rather than
-  a downloaded complete directory. In practice this covers essentially any NSE/BSE stock you
-  search for by name or symbol — it just isn't pre-loaded as one big browsable list the way the
-  International market's ~7,000-stock NASDAQ/NYSE directory is.
+**Effective sample size.** Daily-sampled 20-day forward returns overlap by 19 of
+20 days, so 2,124 rows is really ~106 independent windows. Reported alongside
+every long-horizon metric.
 
-## Screenshots
+**Market status inferred from data.** No hardcoded holiday table — those are
+correct when written and quietly wrong a year later. Weekends and hours are
+rule-based; exchange holidays are detected as "the exchange published no bar
+today".
 
-Screenshots aren't checked into this repository. To add your own for a portfolio README:
+**Nulls dropped, never forward-filled.** Forward-filling a close manufactures a
+zero-return day the model learns as a real low-volatility observation.
 
-1. Run `streamlit run app.py`, walk through each tab, and use your OS/browser's screenshot
-   tool (or Streamlit's own "Screenshot" option in its menu).
-2. Save the images under a new `screenshots/` folder.
-3. Replace this section with, e.g.:
+**FinBERT labels read from model config.** `id2label` is
+`{0: positive, 1: negative, 2: neutral}` — *not* the conventional order.
+Hardcoding indices yields perfectly inverted sentiment: plausible, stable in
+aggregate, and completely wrong.
 
-```markdown
-![Overview tab](screenshots/overview.png)
-![Training tab](screenshots/train.png)
-![Evaluation tab](screenshots/evaluate.png)
-![Forecast tab](screenshots/forecast.png)
+**Text sentiment ≠ company impact.** Separate fields. "Competitor's factory
+burns down" is negative text and potentially bullish impact. Macro events
+resolve to `MIXED` because the platform does not measure a company's specific
+rate exposure and won't pretend to.
+
+**The LLM classifies events; it does not decide direction.** Impact direction
+stays in the rule engine — it's the correctness guarantee, it's tested, and it
+must behave identically with or without an API key.
+
+**Gemini model chosen by measurement.** Same headline, identical output:
+`gemini-3.5-flash` 9.75s vs `gemini-3.1-flash-lite` **1.11s**. At ~10s a call, a
+20s timeout was failing half of all requests. Classification against a fixed
+enum gains nothing from a reasoning budget.
+
+**Semantic colours over brand purity.** Lime `#C1DF1F` on black `#000000` is the
+identity, but bullish/bearish use green/red. Encoding "up" as lime puts two
+similar-luminance yellows and reds adjacent in charts and destroys readability.
+
+---
+
+## Known limitations
+
+**Sentiment is displayed but not validated.** The one genuinely untested
+hypothesis. Marketaux's free tier caps every response at 3 articles with no
+historical backfill:
+
+```
+found: 33649    returned: 3    limit: 3
 ```
 
-## Deployment (Streamlit Community Cloud)
+Validating sentiment as a predictive feature needs daily sentiment across ~2,000
+trading days and several stocks — months of quota at this rate. **No sentiment
+backtest is reported**, because a number produced from one day of articles would
+be fabricated evidence. A news tier with historical backfill would unblock it;
+providers sit behind an interface, so it's a client swap, not a rewrite.
 
-1. Push this repository to GitHub (public, or private on a plan that supports it).
-2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
-3. Click **New app**, select your repository, branch, and set the main file path to `app.py`.
-4. Streamlit Cloud installs `requirements.txt` automatically — no extra configuration needed
-   for this project (it has no secrets or external services to configure).
-5. Deploy. The first load will be slow while TensorFlow installs and the container spins up;
-   subsequent loads are fast.
+**Aggregate sentiment is thin.** With 3 articles per section, a single story can
+dominate. Aggregates are labelled `ADEQUATE` / `THIN` / `INSUFFICIENT` and the
+UI shows a warning band.
 
-**Notes for cloud deployment:**
-- Streamlit Community Cloud containers are ephemeral — anything written to `models/` or
-  `data/` during a session will **not** persist across app restarts/redeploys. For a portfolio
-  demo this is fine (train live in the session); for persistent model storage you'd want to
-  wire in external storage (S3, a mounted volume, etc.), which is out of scope here.
-  For serious use, keep long training runs on a proper CI/training pipeline rather than the
-  free-tier serverless container.
-- Free-tier containers have limited CPU/RAM — keep epoch counts and architecture sizes
-  modest when demoing training live in a deployed instance (the Compare Architectures tab's
-  "epochs per architecture" control exists partly for this reason).
+**FinBERT misses hedged comparatives.** Measured: "fell less than feared as the
+company narrowed its quarterly loss" reads NEGATIVE (0.97). It is solid on
+earnings, losses, AGM notices and appointments.
 
-## Future Improvements
+**Market data is delayed.** yfinance is an unofficial, delayed feed. The UI
+never claims `REAL_TIME`; it reports `DELAYED`, `END_OF_DAY` or `CACHED`.
 
-- **More markets** — London Stock Exchange, Tokyo, Hong Kong, cryptocurrency, ETFs, mutual
-  funds, commodities. Each is a new `MarketProvider` (see
-  [Markets & Stock Selection](#markets--stock-selection)) plus one registry line; the
-  prediction pipeline itself needs no changes.
-- **A user-supplied NSE bulk CSV** — if you have (or can manually download from a browser) an
-  official NSE equity-list export, `IndianMarketProvider.list_directory()` is the one place to
-  wire it in as an additional source alongside the live-search-based starter list.
-- **Automated hyperparameter search** — `src/model.py`'s `ModelConfig` dataclass is already
-  structured as a tunable search space (recurrent units, dropout, learning rate, etc.); wiring
-  in Keras Tuner or Optuna would be a natural next step. Not included here to avoid pulling in
-  a heavy extra dependency for this iteration.
-- **Walk-forward cross-validation** instead of a single chronological train/test split, for a
-  more robust estimate of out-of-sample performance across different market regimes.
-- **Multivariate forecasting** — jointly predicting Open/High/Low/Close/Volume instead of
-  approximating them during recursive forecasting, which would remove the "flat bar"
-  simplification entirely.
-- **External data sources** — news sentiment, earnings calendars, macroeconomic indicators,
-  sector/index correlation features.
-- **Ensembling** — combining predictions across the five architectures (already trainable
-  side by side via the Compare Architectures tab) rather than picking just one.
-- **Model registry / experiment tracking** — MLflow or Weights & Biases integration for
-  comparing runs beyond a single session.
-- **Persistent storage for deployed models** — S3 or similar, so trained models survive
-  container restarts on Streamlit Community Cloud.
+**No transaction costs or slippage.** Metrics are classification metrics, not
+trading returns. A directional edge of this size would not survive costs anyway.
+
+**Fundamentals coverage is uneven**, especially for Indian listings. Missing
+fields render as `DATA UNAVAILABLE`, never as zero.
+
+---
+
+## Project layout
+
+```
+.
+├── README.md                    this file
+├── docs/
+│   └── legacy-streamlit-project.md    the earlier project's documentation
+│
+├── app.py, src/, theme.py       earlier Streamlit + TensorFlow project
+│
+└── stockintel/                  this project
+    ├── backend/
+    │   ├── app/
+    │   │   ├── api/routes/      markets, analysis, news, meta
+    │   │   ├── backtesting/     splits (purge/embargo), metrics, harness
+    │   │   ├── core/            config, errors, logging
+    │   │   ├── data/
+    │   │   │   ├── cache/       SQLite + Parquet TTL store
+    │   │   │   ├── market/      providers, prices, calendar
+    │   │   │   ├── news/        Marketaux, deduplication
+    │   │   │   └── fundamentals/  company profiles
+    │   │   ├── features/        technical, targets, leakage probe
+    │   │   ├── models/          baselines, tabular, lstm, ensemble, selective
+    │   │   └── services/        analytics, prediction, sentiment,
+    │   │                        event relevance, llm
+    │   ├── scripts/             model comparison experiments
+    │   └── tests/
+    └── frontend/
+        └── src/
+            ├── app/            dashboard page, design system
+            ├── components/     controls, prediction, charts, analytics,
+            │                   evidence, news
+            └── lib/            API client, types, formatting
+```
+
+37 backend modules (~6,200 lines), 14 frontend files (~3,000 lines).
+
+---
+
+## Testing
+
+```bash
+cd stockintel/backend
+.venv/Scripts/python -m pytest                        # 94 tests
+.venv/Scripts/python -m pytest --ignore=tests/test_lstm.py    # skip the slow ones
+
+RUN_LIVE_LLM_TESTS=1 .venv/Scripts/python -m pytest tests/test_llm_classification.py
+```
+
+Integration tests run against live market data and skip cleanly when the network
+is unavailable. The failure modes that matter here — a provider changing its
+response shape, a pandas upgrade altering rolling semantics, an indicator
+quietly reading the future — are invisible to tests run against fixtures.
+
+Reproduce the experiments:
+
+```bash
+.venv/Scripts/python -m scripts.compare_models     # baselines vs tabular
+.venv/Scripts/python -m scripts.test_horizons      # horizons + abstention
+.venv/Scripts/python -m scripts.compare_lstm       # LSTM head-to-head
+.venv/Scripts/python -m scripts.compare_final      # ensemble head-to-head
+```
+
+Frontend:
+
+```bash
+cd stockintel/frontend
+npx tsc --noEmit && npm run lint
+```
+
+---
+
+## The other project in this repository
+
+This repository also contains an earlier, independent **Streamlit + TensorFlow
+LSTM price-forecasting system**, which remains fully functional and untouched:
+
+```bash
+.venv/Scripts/streamlit run app.py
+```
+
+Its code lives at `app.py` and `src/`, and its documentation — architecture,
+the mathematics of LSTM cells, indicator formulas, evaluation metrics — is
+preserved at **[docs/legacy-streamlit-project.md](docs/legacy-streamlit-project.md)**.
+
+The two are deliberately separate. That project forecasts *price levels* with
+deep learning; StockIntel forecasts *direction* and is built around validating
+whether such forecasts hold up out of sample. They use different virtual
+environments and share no runtime code.
+
+StockIntel's market-provider abstraction **is** adapted from that project's
+`src/markets` package, including its verified finding that NSE's own site blocks
+automated requests (HTTP 403 on the homepage, 503 on the equity-list CSV, behind
+a WAF) — which is why Indian listings here are sourced through Yahoo Finance's
+search API rather than NSE directly.
