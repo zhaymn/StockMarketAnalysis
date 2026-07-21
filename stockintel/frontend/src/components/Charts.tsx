@@ -116,10 +116,10 @@ export function ChartSection({
         />
       ) : isLoading && !data ? (
         <div className="space-y-5">
-          <Skeleton className="h-[420px] w-full" />
+          <Skeleton className="h-[30rem] w-full" />
           <div className="grid gap-5 lg:grid-cols-2">
-            <Skeleton className="h-[220px] w-full" />
-            <Skeleton className="h-[220px] w-full" />
+            <Skeleton className="h-[15rem] w-full" />
+            <Skeleton className="h-[15rem] w-full" />
           </div>
         </div>
       ) : data ? (
@@ -155,7 +155,10 @@ function ChartFrame({
   subtitle?: string;
   legend?: { label: string; color: string }[];
   containerRef: React.RefObject<HTMLDivElement | null>;
-  height: number;
+  // A CSS length (rem), not a number, so chart height scales with the root
+  // font-size like the rest of the UI. autoSize makes the canvas fill this
+  // container, so the chart grows on larger displays in step with the text.
+  height: string;
 }) {
   return (
     <div>
@@ -191,7 +194,7 @@ function PriceChart({ data }: { data: ChartResponse }) {
     if (!containerRef.current) return;
 
     const chart = createChart(containerRef.current, {
-      ...baseOptions(400),
+      ...baseOptions(480),
       rightPriceScale: { borderColor: PALETTE.border, scaleMargins: { top: 0.08, bottom: 0.28 } },
     });
 
@@ -328,7 +331,7 @@ function PriceChart({ data }: { data: ChartResponse }) {
             : []),
         ]}
         containerRef={containerRef}
-        height={400}
+        height="30rem"
       />
 
       {forecast?.available && (
@@ -349,7 +352,7 @@ function RsiChart({ data }: { data: ChartResponse }) {
   useEffect(() => {
     if (!containerRef.current || !data.rsi_14) return;
 
-    const chart = createChart(containerRef.current, baseOptions(200));
+    const chart = createChart(containerRef.current, baseOptions(240));
     const series = chart.addSeries(LineSeries, {
       color: PALETTE.lime,
       lineWidth: 2,
@@ -380,7 +383,7 @@ function RsiChart({ data }: { data: ChartResponse }) {
       title="RSI (14)"
       subtitle="Above 70 conventionally overbought, below 30 oversold."
       containerRef={containerRef}
-      height={200}
+      height="15rem"
     />
   );
 }
@@ -391,7 +394,7 @@ function MacdChart({ data }: { data: ChartResponse }) {
   useEffect(() => {
     if (!containerRef.current || !data.macd.macd) return;
 
-    const chart = createChart(containerRef.current, baseOptions(200));
+    const chart = createChart(containerRef.current, baseOptions(240));
 
     const histogram = chart.addSeries(HistogramSeries, { priceLineVisible: false });
     histogram.setData(
@@ -439,7 +442,7 @@ function MacdChart({ data }: { data: ChartResponse }) {
         { label: "Signal", color: PALETTE.sma50 },
       ]}
       containerRef={containerRef}
-      height={200}
+      height="15rem"
     />
   );
 }
@@ -450,7 +453,7 @@ function VolatilityChart({ data }: { data: ChartResponse }) {
   useEffect(() => {
     if (!containerRef.current || !data.volatility_21d) return;
 
-    const chart = createChart(containerRef.current, baseOptions(200));
+    const chart = createChart(containerRef.current, baseOptions(240));
     const series = chart.addSeries(AreaSeries, {
       lineColor: PALETTE.lime,
       topColor: "rgba(193,223,31,0.25)",
@@ -478,7 +481,7 @@ function VolatilityChart({ data }: { data: ChartResponse }) {
     <ChartFrame
       title="Rolling volatility (21-day, annualised)"
       containerRef={containerRef}
-      height={200}
+      height="15rem"
     />
   );
 }
