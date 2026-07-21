@@ -1,4 +1,4 @@
-"""FastAPI application entry point.
+﻿"""FastAPI application entry point.
 
 Run:  .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000
 Docs: http://localhost:8000/docs
@@ -10,7 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import analysis, markets, meta, news
+from app.api.routes import analysis, macro, markets, meta, news
 from app.core.config import get_settings
 from app.core.errors import StockIntelError
 from app.core.logging import configure_logging, get_logger
@@ -68,6 +68,7 @@ app.include_router(meta.router)
 app.include_router(markets.router)
 app.include_router(analysis.router)
 app.include_router(news.router)
+app.include_router(macro.router)
 
 
 @app.get("/health", tags=["meta"])

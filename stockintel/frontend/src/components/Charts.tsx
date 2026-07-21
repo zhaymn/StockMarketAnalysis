@@ -29,6 +29,10 @@ const PALETTE = {
   sma20: "#c1df1f",
   sma50: "#60a5fa",
   sma200: "#a78bfa",
+  // Forecast uses a distinct hue from every historical series, so the
+  // projection cannot be confused with an indicator line.
+  forecast: "#f59e0b",
+  forecastBand: "#7c5306",
 };
 
 function toTime(dateString: string): UTCTimestamp {
@@ -68,15 +72,19 @@ function baseOptions(height: number) {
 export function ChartSection({
   marketId,
   symbol,
+  target,
+  mode,
 }: {
   marketId: string;
   symbol: string;
+  target: string;
+  mode: string;
 }) {
   const [range, setRange] = useState<Range>("1y");
 
   const { data, error, isLoading } = useAsyncData<ChartResponse>(
-    `${marketId}|${symbol}|${range}`,
-    (signal) => api.chart(marketId, symbol, range, signal),
+    `${marketId}|${symbol}|${range}|${target}|${mode}`,
+    (signal) => api.chart(marketId, symbol, range, target, mode, signal),
   );
 
   return (
@@ -256,23 +264,82 @@ function PriceChart({ data }: { data: ChartResponse }) {
         .filter((point): point is { time: UTCTimestamp; value: number; color: string } => point !== null),
     );
 
+    // --- Forecast overlay -------------------------------------------------
+    // Drawn only when a directional call exists, and drawn as DASHED lines so
+    // it can never be mistaken for the solid actual data beside it. It is the
+    // historical outcome distribution for the predicted class, not a price
+    // path: a single projected line would imply a precision the model does
+    // not have.
+    const forecast = data.forecast;
+    if (forecast?.available) {
+      const anchorTime = toTime(forecast.anchor_date);
+
+      const addProjection = (
+        values: number[],
+        color: string,
+        width: 1 | 2,
+      ) => {
+        const series = chart.addSeries(LineSeries, {
+          color,
+          lineWidth: width,
+          lineStyle: 2, // dashed
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        });
+        series.setData([
+          // Start at the anchor so the cone visibly originates from the last
+          // real close rather than floating unattached.
+          { time: anchorTime, value: forecast.anchor_close },
+          ...forecast.dates.map((date, index) => ({
+            time: toTime(date),
+            value: values[index],
+          })),
+        ]);
+      };
+
+      addProjection(forecast.upper, PALETTE.forecastBand, 1);
+      addProjection(forecast.lower, PALETTE.forecastBand, 1);
+      addProjection(forecast.median, PALETTE.forecast, 2);
+    }
+
     chart.timeScale().fitContent();
 
     return () => chart.remove();
   }, [data]);
 
+  const forecast = data.forecast;
+
   return (
-    <ChartFrame
-      title="Price history"
-      subtitle="Candlesticks with moving averages and volume. All values are actual historical data."
-      legend={[
-        { label: "SMA 20", color: PALETTE.sma20 },
-        { label: "SMA 50", color: PALETTE.sma50 },
-        { label: "SMA 200", color: PALETTE.sma200 },
-      ]}
-      containerRef={containerRef}
-      height={400}
-    />
+    <div>
+      <ChartFrame
+        title="Price history"
+        subtitle={
+          forecast?.available
+            ? "Solid: actual historical data. Dashed: projected outcome range."
+            : "Candlesticks with moving averages and volume. All values are actual historical data."
+        }
+        legend={[
+          { label: "SMA 20", color: PALETTE.sma20 },
+          { label: "SMA 50", color: PALETTE.sma50 },
+          { label: "SMA 200", color: PALETTE.sma200 },
+          ...(forecast?.available
+            ? [{ label: `${forecast.horizon_days}d range`, color: PALETTE.forecast }]
+            : []),
+        ]}
+        containerRef={containerRef}
+        height={400}
+      />
+
+      {forecast?.available && (
+        <p className="mt-3 border-t border-line pt-3 text-xs leading-relaxed text-text-muted">
+          <span className="font-semibold text-text-secondary">
+            The dashed cone is not a price forecast.
+          </span>{" "}
+          {forecast.caveat} {forecast.basis}
+        </p>
+      )}
+    </div>
   );
 }
 

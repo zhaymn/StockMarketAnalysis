@@ -266,6 +266,46 @@ export interface ChartResponse {
     histogram: (number | null)[] | null;
   };
   volatility_21d: (number | null)[] | null;
+  /** Present only when a directional call was issued. Null is the common case. */
+  forecast: ForecastProjection | null;
+}
+
+export interface ForecastProjection {
+  available: boolean;
+  anchor_date: string;
+  anchor_close: number;
+  dates: string[];
+  median: number[];
+  upper: number[];
+  lower: number[];
+  direction: string | null;
+  horizon_days: number;
+  basis: string;
+  caveat: string;
+}
+
+export interface MacroObservation {
+  series_id: string;
+  label: string;
+  unit: string;
+  description: string;
+  value: number | null;
+  change: number | null;
+  observation_date: string | null;
+  age_days: number | null;
+  is_stale: boolean;
+  available: boolean;
+  unavailable_reason: string | null;
+}
+
+export interface MacroSnapshot {
+  market_id: string;
+  source: string;
+  observations: MacroObservation[];
+  n_available: number;
+  n_stale: number;
+  fetched_at: number;
+  coverage_note: string | null;
 }
 
 export interface IntegrationStatus {
