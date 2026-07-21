@@ -15,6 +15,7 @@ interface ArticleImpact {
   what_happened: string;
   why_relevant: string;
   reasoning: string;
+  classifier: "gemini" | "rules";
 }
 
 interface NewsArticle {
@@ -286,6 +287,18 @@ function ArticleCard({ article }: { article: NewsArticle }) {
               <dd className="tnum text-right text-text-secondary">{value}</dd>
             </div>
           ))}
+          {/* Which classifier produced the event type, so an LLM outage is
+              visible rather than silently degrading to keyword matching. */}
+          <div className="flex justify-between gap-2 border-t border-line pt-1.5">
+            <dt className="text-text-faint">Classified by</dt>
+            <dd
+              className={`text-right ${
+                impact.classifier === "gemini" ? "text-lime" : "text-text-muted"
+              }`}
+            >
+              {impact.classifier === "gemini" ? "Gemini" : "Keyword rules"}
+            </dd>
+          </div>
         </dl>
       </div>
     </Card>

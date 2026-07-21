@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     fred_api_key: str = ""
     gemini_api_key: str = ""
 
+    #: Overridable because Google retires models for new projects without
+    #: notice. Empty falls back to the pinned default in app.services.llm.
+    gemini_model: str = ""
+
     # --- Application -------------------------------------------------------
     stockintel_env: str = "development"
     log_level: str = "INFO"

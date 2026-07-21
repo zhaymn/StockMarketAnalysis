@@ -162,6 +162,10 @@ class EventImpact:
     reasoning: str = ""
     matched_terms: list[str] = field(default_factory=list)
 
+    classifier: str = "rules"
+    """Which classifier produced the event type: "gemini" or "rules".
+    Surfaced so an LLM outage is visible rather than silent."""
+
     def to_dict(self) -> dict[str, object]:
         return {
             "relationship": self.relationship.value,
@@ -174,6 +178,7 @@ class EventImpact:
             "why_relevant": self.why_relevant,
             "reasoning": self.reasoning,
             "matched_terms": self.matched_terms,
+            "classifier": self.classifier,
         }
 
 
@@ -232,6 +237,7 @@ def assess_impact(
     profile: CompanyProfile,
     *,
     competitor_names: tuple[str, ...] = (),
+    use_llm: bool = True,
 ) -> EventImpact:
     """Assess one article's implication for one company.
 
@@ -241,6 +247,9 @@ def assess_impact(
         competitor_names: Known rivals. Supplying these enables the
             sentiment-inversion path; without them a competitor story is
             treated as sector news, which weakens but does not invert it.
+        use_llm: Allow Gemini to classify the event type. Falls back to the
+            keyword matcher when unavailable. The impact *direction* is never
+            LLM-decided — see `app.services.llm`.
     """
     text = f"{article.title} {article.description}".lower()
 
@@ -312,7 +321,27 @@ def assess_impact(
         )
 
     # --- 5. Event type, magnitude, horizon --------------------------------
+    # Gemini first, keyword matcher as fallback. The keyword matcher mislabels
+    # events whose vocabulary overlaps another category -- a valuation
+    # milestone reading as a "Guidance change", for instance -- which is
+    # precisely what the model is here to fix.
     event_type, magnitude, horizon, matched_terms = _match_event_type(text)
+    classifier = "rules"
+    llm_summary = ""
+
+    if use_llm:
+        from app.services import llm
+
+        classification = llm.classify_event(article.title, article.description)
+        if classification is not None:
+            classifier = "gemini"
+            llm_summary = classification.summary
+            event_type = (
+                None if classification.event_type == "Other" else classification.event_type
+            )
+            magnitude = ImpactMagnitude(classification.magnitude)
+            horizon = TimeHorizon(classification.horizon)
+
     if event_type:
         reasons.append(f"Identified as: {event_type}")
         relevance = min(1.0, relevance + 0.05)
@@ -334,10 +363,13 @@ def assess_impact(
         magnitude=magnitude,
         horizon=horizon,
         event_type=event_type,
-        what_happened=article.title,
+        # Prefer the model's factual one-line summary over the raw headline,
+        # which is often written for clicks rather than clarity.
+        what_happened=llm_summary or article.title,
         why_relevant="; ".join(reasons[:-1]) if len(reasons) > 1 else reasons[0],
         reasoning=impact_reason,
         matched_terms=matched_terms,
+        classifier=classifier,
     )
 
 
@@ -418,12 +450,25 @@ def score_articles(
     *,
     competitor_names: tuple[str, ...] = (),
     min_relevance: float = MIN_RELEVANCE,
+    use_llm: bool = True,
 ) -> list[tuple[Article, EventImpact]]:
     """Assess and filter articles for one company, most relevant first."""
     assessed: list[tuple[Article, EventImpact]] = []
 
+    # Classify concurrently up front so the serial loop below hits warm cache
+    # entries; done one at a time this would add ~1s per article to the request.
+    if use_llm and articles:
+        from app.services import llm
+
+        if llm.is_available():
+            llm.prewarm_classifications(
+                [(a.title, a.description) for a in articles]
+            )
+
     for article in articles:
-        impact = assess_impact(article, profile, competitor_names=competitor_names)
+        impact = assess_impact(
+            article, profile, competitor_names=competitor_names, use_llm=use_llm
+        )
         if impact.relevance_score < min_relevance:
             continue
 

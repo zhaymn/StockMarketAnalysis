@@ -88,7 +88,7 @@ def test_negative_competitor_news_is_bullish_not_bearish(nvidia):
         sentiment=TextSentiment.NEGATIVE,
     )
 
-    impact = assess_impact(article, nvidia, competitor_names=("AMD", "Intel"))
+    impact = assess_impact(article, nvidia, competitor_names=("AMD", "Intel"), use_llm=False)
 
     assert impact.relationship is Relationship.COMPETITOR
     # The text is negative...
@@ -103,7 +103,7 @@ def test_positive_competitor_news_is_bearish(nvidia):
         "AMD wins major cloud contract with record-breaking chip order",
         sentiment=TextSentiment.POSITIVE,
     )
-    impact = assess_impact(article, nvidia, competitor_names=("AMD",))
+    impact = assess_impact(article, nvidia, competitor_names=("AMD",), use_llm=False)
 
     assert impact.relationship is Relationship.COMPETITOR
     assert impact.direction is ImpactDirection.BEARISH
@@ -115,7 +115,7 @@ def test_direct_negative_news_stays_bearish(nvidia):
         "NVIDIA Corporation misses quarterly earnings estimates badly",
         sentiment=TextSentiment.NEGATIVE, tagged=["NVDA"],
     )
-    impact = assess_impact(article, nvidia)
+    impact = assess_impact(article, nvidia, use_llm=False)
 
     assert impact.relationship is Relationship.DIRECT
     assert impact.direction is ImpactDirection.BEARISH
@@ -129,7 +129,7 @@ def test_impact_language_is_probabilistic(nvidia):
         "NVIDIA Corporation announces record data center revenue",
         sentiment=TextSentiment.POSITIVE, tagged=["NVDA"],
     )
-    impact = assess_impact(article, nvidia)
+    impact = assess_impact(article, nvidia, use_llm=False)
 
     hedges = ("may", "could", "potentially", "tends to", "historically")
     assert any(h in impact.reasoning.lower() for h in hedges), impact.reasoning
@@ -145,14 +145,14 @@ def test_neutral_sentiment_yields_uncertain_not_a_guess(nvidia):
         "NVIDIA Corporation confirms date for annual shareholder meeting",
         sentiment=TextSentiment.NEUTRAL, tagged=["NVDA"],
     )
-    impact = assess_impact(article, nvidia)
+    impact = assess_impact(article, nvidia, use_llm=False)
     assert impact.direction is ImpactDirection.UNCERTAIN
 
 
 def test_unavailable_sentiment_yields_uncertain(nvidia):
     article = make_article("Some NVIDIA Corporation headline",
                            sentiment=TextSentiment.UNAVAILABLE, tagged=["NVDA"])
-    impact = assess_impact(article, nvidia)
+    impact = assess_impact(article, nvidia, use_llm=False)
     assert impact.direction is ImpactDirection.UNCERTAIN
 
 
@@ -161,7 +161,7 @@ def test_macro_news_is_mixed_not_confidently_directional(nvidia):
         "Federal Reserve raises interest rates by 50 basis points",
         sentiment=TextSentiment.NEGATIVE, category=NewsCategory.MACRO,
     )
-    impact = assess_impact(article, nvidia)
+    impact = assess_impact(article, nvidia, use_llm=False)
 
     assert impact.relationship is Relationship.MACRO
     # Honest: we do not measure this company's rate exposure.
@@ -174,7 +174,7 @@ def test_sector_news_matches_via_sector_keywords(nvidia):
         "New semiconductor export restrictions announced for advanced chip sales",
         sentiment=TextSentiment.NEGATIVE, category=NewsCategory.SECTOR,
     )
-    impact = assess_impact(article, nvidia)
+    impact = assess_impact(article, nvidia, use_llm=False)
 
     assert impact.relationship is Relationship.SECTOR
     assert impact.direction is ImpactDirection.BEARISH
@@ -187,7 +187,7 @@ def test_irrelevant_news_is_excluded(nvidia):
         "Local council approves new pedestrian crossing on the high street",
         sentiment=TextSentiment.NEUTRAL,
     )
-    impact = assess_impact(article, nvidia)
+    impact = assess_impact(article, nvidia, use_llm=False)
 
     assert impact.relationship is Relationship.UNRELATED
     assert impact.relevance_score == 0.0
@@ -199,7 +199,7 @@ def test_indian_company_name_variants_match(reliance):
         "Reliance posts record quarterly profit on refining margins",
         sentiment=TextSentiment.POSITIVE,
     )
-    impact = assess_impact(article, reliance)
+    impact = assess_impact(article, reliance, use_llm=False)
 
     assert impact.relationship is Relationship.DIRECT
     assert impact.direction is ImpactDirection.BULLISH
@@ -213,7 +213,7 @@ def test_score_articles_filters_and_ranks(nvidia):
         make_article("Semiconductor demand rises across the industry",
                      sentiment=TextSentiment.POSITIVE, category=NewsCategory.SECTOR),
     ]
-    scored = score_articles(articles, nvidia)
+    scored = score_articles(articles, nvidia, use_llm=False)
 
     assert len(scored) == 2  # gardening dropped
     # Direct company news must outrank sector news.
