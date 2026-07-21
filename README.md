@@ -38,6 +38,7 @@ a news pipeline that keeps text sentiment separate from expected price impact.
 - [Project layout](#project-layout)
 - [Testing](#testing)
 - [The other project in this repository](#the-other-project-in-this-repository)
+- [License](#license)
 
 ---
 
@@ -464,3 +465,20 @@ StockIntel's market-provider abstraction **is** adapted from that project's
 automated requests (HTTP 403 on the homepage, 503 on the equity-list CSV, behind
 a WAF) — which is why Indian listings here are sourced through Yahoo Finance's
 search API rather than NSE directly.
+
+---
+
+## License
+
+[MIT](LICENSE) — use, modify and redistribute freely, including commercially,
+provided the copyright notice is retained.
+
+The license disclaims warranty and liability in the usual way, but to state it
+plainly rather than only in legal boilerplate: **this software makes no
+guarantees about market outcomes.** Its own headline finding is that the models
+here do not beat a naive baseline out of sample. Treat it as an analytics and
+research tool, not as a basis for investment decisions.
+
+Third-party components carry their own licenses — notably FinBERT
+(`ProsusAI/finbert`), and the market and news data providers, whose terms of use
+govern how their data may be used and redistributed.
