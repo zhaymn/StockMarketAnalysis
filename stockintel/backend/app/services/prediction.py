@@ -153,6 +153,13 @@ class PredictionResult:
     expected_return_range: dict[str, float] | None = None
     risk_level: RiskLevel = RiskLevel.MODERATE
 
+    # The model's raw directional lean, surfaced even when the skill gate fails
+    # (NO_EDGE) so the user always sees a signal. This is the model's actual best
+    # guess -- NOT a validated prediction. It is shown only alongside the evidence
+    # that it has not beaten its baseline, and never presented as reliable.
+    indicative_direction: str | None = None
+    indicative_probability: float | None = None
+
     evidence: dict[str, Any] = field(default_factory=dict)
     factors: dict[str, list[dict[str, str]]] = field(default_factory=dict)
     interpretation: str = ""
@@ -178,6 +185,11 @@ class PredictionResult:
             ),
             "expected_return_range": self.expected_return_range,
             "risk_level": self.risk_level.value,
+            "indicative_direction": self.indicative_direction,
+            "indicative_probability": (
+                round(self.indicative_probability, 4)
+                if self.indicative_probability is not None else None
+            ),
             "evidence": self.evidence,
             "factors": self.factors,
             "interpretation": self.interpretation,
@@ -479,13 +491,44 @@ def predict(
 
     if not (beat_baseline and consistent):
         result.verdict = Verdict.NO_EDGE
+
+        # Surface the model's raw directional lean anyway. This is its actual
+        # best guess for the latest bar -- shown so every stock displays a
+        # signal -- but it is explicitly an indicative lean, not a validated
+        # prediction, and the evidence beside it makes the weakness plain.
+        try:
+            lean_model = _build_model(
+                model_mode, target.n_classes, settings.random_seed, target.horizon_days
+            )
+            lean_model.fit(x, y)
+            lean_tail = (
+                x.iloc[-64:] if getattr(lean_model, "requires_sequences", False)
+                else x.iloc[[-1]]
+            )
+            lean_proba = lean_model.predict_proba(lean_tail)[-1]
+            lean_class = int(lean_proba.argmax())
+            result.indicative_direction = target.class_labels[lean_class]
+            result.indicative_probability = float(lean_proba[lean_class])
+        except Exception as exc:
+            logger.debug("Could not compute indicative lean for %s: %s", symbol, exc)
+
+        lean_sentence = ""
+        if result.indicative_direction:
+            lean_sentence = (
+                f"For what it is worth, the model currently leans "
+                f"{result.indicative_direction} (raw probability "
+                f"{result.indicative_probability:.0%}) — but treat that as an "
+                f"indicative tendency only, not a reliable forecast. "
+            )
+
         result.interpretation = (
             f"Out-of-sample, this model achieved {aggregate.get('accuracy_mean', 0):.1%} "
             f"directional accuracy against a {aggregate.get('baseline_accuracy_mean', 0):.1%} "
             f"naive baseline, beating it in {folds_won} of {n_folds} walk-forward folds. "
-            f"That is not sufficient evidence of predictive skill, so no directional call "
-            f"is issued for {symbol} at this horizon. The analytics and evidence below "
-            f"remain valid and are worth reading on their own."
+            f"{lean_sentence}"
+            f"That is not sufficient evidence of predictive skill, so no confident "
+            f"directional call is issued for {symbol} at this horizon. The analytics and "
+            f"evidence below remain valid and are worth reading on their own."
         )
         return result
 

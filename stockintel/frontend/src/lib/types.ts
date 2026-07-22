@@ -104,6 +104,9 @@ export interface Prediction {
   probability: number | null;
   probability_is_calibrated: boolean;
   probability_withheld_reason: string | null;
+  /** The model's raw directional lean, present even on NO_EDGE. Indicative, not validated. */
+  indicative_direction: string | null;
+  indicative_probability: number | null;
   expected_return_range: {
     p10: number;
     p25: number;
