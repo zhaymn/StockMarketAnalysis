@@ -189,13 +189,19 @@ function QuantileBar({
 }
 
 /**
- * The honest no-signal state.
+ * The honest no-signal state — now with the model's indicative lean.
  *
- * Leads with the numbers that produced the verdict, so the user can audit the
- * decision instead of taking it on trust. Styled as a finding, not a failure.
+ * Every stock fails the skill gate, which left this state showing nothing but a
+ * refusal. It now leads with the model's raw directional lean so there is always
+ * a visible signal, explicitly tagged as indicative and NOT a validated call,
+ * with the accuracy-vs-baseline evidence kept right beside it. That is the line
+ * between "here's the model's tendency, but it hasn't earned your trust" and the
+ * confident-looking lie this platform is built to avoid.
  */
 function NoEdgePrediction({ prediction }: { prediction: Prediction }) {
   const wf = prediction.evidence.walk_forward;
+  const lean = prediction.indicative_direction;
+  const leanTone = DIRECTION_TONE[lean ?? ""] ?? "neutral";
 
   return (
     <VerdictShell
@@ -205,9 +211,34 @@ function NoEdgePrediction({ prediction }: { prediction: Prediction }) {
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_1fr]">
         <div>
-          <div className="text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
-            NO DIRECTIONAL CALL
-          </div>
+          {lean ? (
+            <>
+              <span className="mb-3 inline-flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning-dim/40 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-warning">
+                Indicative signal · not a validated call
+              </span>
+              <div
+                className={`text-3xl font-bold tracking-tight sm:text-4xl ${
+                  leanTone === "bullish"
+                    ? "text-bullish"
+                    : leanTone === "bearish"
+                      ? "text-bearish"
+                      : "text-neutral"
+                }`}
+              >
+                LEANS {lean}
+              </div>
+              {prediction.indicative_probability !== null && (
+                <div className="tnum mt-1.5 text-xs text-text-muted">
+                  raw model probability {formatPercent(prediction.indicative_probability, 0)} —
+                  uncalibrated, shown for context only
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
+              NO DIRECTIONAL CALL
+            </div>
+          )}
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-text-secondary">
             {prediction.interpretation}
           </p>
